@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#30104A"/>
+      <stop offset="55%" stop-color="#1A1335"/>
+      <stop offset="100%" stop-color="#070A18"/>
+    </linearGradient>
+
+    <radialGradient id="faceGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#F5D4B4"/>
+      <stop offset="100%" stop-color="#C18C68"/>
+    </radialGradient>
+
+    <linearGradient id="hatGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F3EEDD"/>
+      <stop offset="100%" stop-color="#D7D0BC"/>
+    </linearGradient>
+
+    <linearGradient id="lensGrad" x1="0%" y1="0%" x2="1%" y2="100%">
+      <stop offset="0%" stop-color="#FFD37A"/>
+      <stop offset="50%" stop-color="#FF9B2F"/>
+      <stop offset="100%" stop-color="#A94B00"/>
+    </linearGradient>
+
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D5FBF"/>
+      <stop offset="100%" stop-color="#13C7C3"/>
+    </linearGradient>
+
+    <linearGradient id="smokeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B6FFFF" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#48F2FF" stop-opacity="1"/>
+    </linearGradient>
+
+    <radialGradient id="emberGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD87A"/>
+      <stop offset="100%" stop-color="#FF321A"/>
+    </radialGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <clipPath id="badgeClip">
+      <circle cx="200" cy="200" r="190"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#badgeClip)">
+    <circle cx="200" cy="200" r="195" fill="url(#bgGrad)"/>
+
+    <!-- Temporal background -->
+    <circle cx="200" cy="200" r="160" fill="none" stroke="#3AF7FF" stroke-opacity="0.18" stroke-width="2"/>
+    <circle cx="200" cy="200" r="135" fill="none" stroke="#3AF7FF" stroke-opacity="0.12" stroke-width="1.5"/>
+
+    <!-- Orbit rings -->
+    <ellipse cx="200" cy="195" rx="150" ry="78"
+      fill="none" stroke="#3AF7FF" stroke-opacity="0.35" stroke-width="2"/>
+    <ellipse cx="200" cy="195" rx="110" ry="145"
+      fill="none" stroke="#54F8FF" stroke-opacity="0.22" stroke-width="2"/>
+
+    <!-- Clock ticks -->
+    <g stroke="#88EEFF" stroke-opacity="0.24" stroke-width="2">
+      <line x1="200" y1="28" x2="200" y2="42"/>
+      <line x1="200" y1="358" x2="200" y2="372"/>
+      <line x1="28" y1="200" x2="42" y2="200"/>
+      <line x1="358" y1="200" x2="372" y2="200"/>
+      <line x1="79" y1="79" x2="90" y2="90"/>
+      <line x1="310" y1="310" x2="321" y2="321"/>
+      <line x1="321" y1="79" x2="310" y2="90"/>
+      <line x1="90" y1="310" x2="79" y2="321"/>
+    </g>
+
+    <!-- Roman markers -->
+    <g fill="#7BEFFF" opacity="0.35" font-family="Georgia,serif" font-size="16" text-anchor="middle">
+      <text x="200" y="58">XII</text>
+      <text x="342" y="205">III</text>
+      <text x="200" y="350">VI</text>
+      <text x="58" y="205">IX</text>
+    </g>
+
+    <!-- Smoke vortex -->
+    <g fill="none" stroke="url(#smokeGrad)" stroke-linecap="round" filter="url(#glow)">
+      <path d="M220 208
+               C285 150 235 105 188 120
+               C145 134 170 182 228 173
+               C288 164 305 112 258 83"
+            stroke-width="8"/>
+      <path d="M240 228
+               C318 190 290 126 227 136
+               C174 144 185 205 260 198
+               C325 192 341 136 286 101"
+            stroke-width="4"/>
+    </g>
+
+    <!-- Shirt -->
+    <path d="M105 318
+             Q200 270 295 318
+             L315 400
+             L85 400 Z"
+          fill="url(#shirtGrad)"/>
+
+    <path d="M168 287 L200 325 L232 287"
+          fill="#11325D"/>
+
+    <g stroke="#FFD056" stroke-width="3" opacity="0.85">
+      <line x1="132" y1="340" x2="156" y2="364"/>
+      <line x1="255" y1="340" x2="279" y2="364"/>
+      <polyline points="180,350 195,336 210,350 225,336"/>
+    </g>
+
+    <!-- Neck -->
+    <rect x="178" y="250" width="44" height="48" rx="10"
+          fill="url(#faceGrad)"/>
+
+    <!-- Face -->
+    <path d="M122 172
+             C122 112 158 87 200 87
+             C242 87 278 112 278 172
+             L278 214
+             C278 270 242 304 200 304
+             C158 304 122 270 122 214 Z"
+          fill="url(#faceGrad)"/>
+
+    <!-- Hat -->
+    <path d="M125 125
+             C145 50 260 45 280 150
+             Q250 105 200 150
+             Q150 105 125 150 Z"
+          fill="url(#hatGrad)"/>
+
+    <path d="M92 142
+             C115 121 288 121 308 142
+             C282 155 246 162 200 162
+             C154 162 118 155 92 142 Z"
+          fill="url(#hatGrad)"/>
+
+    <rect x="120" y="115" width="158" height="17" rx="8"
+          fill="#495833"/>
+
+    <rect x="186" y="115" width="24" height="17" rx="8"
+          fill="#54F8FF"/>
+
+    <!-- Sunglasses -->
+    <g>
+      <rect x="136" y="156" width="60" height="40" rx="16"
+            fill="url(#lensGrad)"
+            stroke="#412200" stroke-width="4"/>
+      <rect x="204" y="156" width="60" height="40" rx="16"
+            fill="url(#lensGrad)"
+            stroke="#412200" stroke-width="4"/>
+
+      <rect x="196" y="170" width="8" height="6" rx="3"
+            fill="#412200"/>
+
+      <!-- Reflection clock hands -->
+      <g stroke="#FFDFA6" stroke-width="2" opacity="0.55">
+        <line x1="150" y1="188" x2="178" y2="164"/>
+        <line x1="167" y1="188" x2="167" y2="166"/>
+
+        <line x1="220" y1="188" x2="248" y2="164"/>
+        <line x1="237" y1="188" x2="237" y2="166"/>
+      </g>
+    </g>
+
+    <!-- Nose -->
+    <path d="M200 190
+             C194 210 195 222 204 227"
+          fill="none"
+          stroke="#A16A4F"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+    <!-- Smirk -->
+    <path d="M179 246
+             C194 257 214 257 230 243"
+          fill="none"
+          stroke="#6A3B2A"
+          stroke-width="4"
+          stroke-linecap="round"/>
+
+    <!-- Cigarette holder -->
+    <g>
+      <path d="M228 247 L315 266"
+            stroke="#3A1E12"
+            stroke-width="6"
+            stroke-linecap="round"/>
+
+      <line x1="315" y1="266" x2="344" y2="271"
+            stroke="#E8D6B0"
+            stroke-width="6"
+            stroke-linecap="round"/>
+
+      <circle cx="347" cy="272" r="6"
+              fill="url(#emberGrad)"
+              filter="url(#glow)"/>
+    </g>
+
+    <!-- Smoke from holder -->
+    <g fill="none" stroke="#50F6FF" filter="url(#glow)">
+      <path d="M349 272
+               C367 247 356 232 337 232
+               C320 232 320 252 343 253"
+            stroke-width="3"/>
+      <path d="M343 253
+               C380 220 368 194 332 194
+               C302 194 302 230 347 225"
+            stroke-width="2"/>
+    </g>
+
+    <!-- Badge rim -->
+    <circle cx="200" cy="200" r="192"
+            fill="none"
+            stroke="#6AF7FF"
+            stroke-opacity="0.65"
+            stroke-width="4"/>
+    <circle cx="200" cy="200" r="184"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-opacity="0.10"
+            stroke-width="2"/>
+  </g>
+</svg>

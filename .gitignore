@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+logs/
+*.log
+*.tmp
+.vscode
+storage/output/*.md
