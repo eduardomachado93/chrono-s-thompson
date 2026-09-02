@@ -15,13 +15,13 @@ logger = logging.getLogger("ChronoMain")
 
 
 async def main():
-    # today_str = datetime.now().strftime("%m/%d")
-    # logger.info(f"🕶️  Iniciando despacho de Chrono S. Thompson para {today_str}...")
+    today_str = datetime.now().strftime("%m/%d")
+    logger.info(f"🕶️  Iniciando despacho de Chrono S. Thompson para {today_str}...")
 
     app = build_chrono_graph()
 
     initial_state = {
-        "target_date": '01/31',
+        "target_date": today_str,
         "raw_events": [],
         "curated_story": None,
         "modern_context": None,

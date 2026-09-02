@@ -1,3 +1,7 @@
+#src/chrono_s_thompson/graph/nodes/fetcher.py
+"""
+Node responsible for fetching historical facts from the MCP Server in the Chrono S. Thompson LangGraph workflow.
+"""
 import logging
 from typing import Any, Dict
 
@@ -6,37 +10,40 @@ from src.chrono_s_thompson.mcp_client.client import ChronoMCPClient, MCPClientEr
 
 logger = logging.getLogger(__name__)
 
-# Instância reutilizável do cliente MCP
+# Reusable MCP client instance
 mcp_client = ChronoMCPClient()
 
-
 async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
-    """Nó inicial do LangGraph responsável por buscar fatos históricos via MCP Server.
+    """Node in the LangGraph responsible for fetching historical facts via the MCP Server.
 
     Args:
-        state: Estado atual do pipeline contendo ao menos `target_date` ('MM/DD').
+        state: The current state of the pipeline containing at least `target_date` ('MM/DD').
 
     Returns:
-        Dicionário com a chave `raw_events` para mutação parcial do ChronoState.
+        A dictionary with the key `raw_events` to partially mutate the ChronoState.
     """
+    print(f"[Node: fetch_events] Current state: {state}")  # Debugging output to trace the current state
     target_date = state.get("target_date")
     if not target_date:
-        logger.error("Data alvo ('target_date') não encontrada no estado do grafo.")
+        logger.error("Target date ('target_date') not found in graph state.")
         return {"raw_events": []}
-
-    logger.info(f"[Node: fetch_events] Consultando MCP Server para o dia: {target_date}")
+    if state.get("raw_events") and len(state.get("raw_events")) > 0:
+        logger.info("[Node: fetch_events] Raw events already present in state; skipping fetch.")
+        return {"raw_events": state.get("raw_events")}
+    
+    logger.info(f"[Node: fetch_events] Querying MCP Server for the date: {target_date}")
 
     try:
         events = await mcp_client.get_historical_events(target_date)
         logger.info(
-            f"[Node: fetch_events] Sucesso: {len(events)} eventos históricos recuperados via MCP."
+            f"[Node: fetch_events] Success: {len(events)} historical events retrieved via MCP."
         )
         return {"raw_events": events}
 
     except MCPClientError as exc:
         logger.error(
-            f"[Node: fetch_events] Erro ao comunicar com o MCP Server: {exc}",
+            f"[Node: fetch_events] Error communicating with the MCP Server: {exc}",
             exc_info=True
         )
-        # Retorna lista vazia para evitar interrupção abrupta do grafo
+        # Return an empty list to avoid abrupt graph interruption
         return {"raw_events": []}

@@ -3,8 +3,8 @@ import json
 import logging
 import sys
 from typing import List
-from mcp.server.fastmcp import FastMCP
-import json
+from fastmcp import FastMCP
+
 
 from src.chrono_s_thompson.mcp_server.tools.wikipedia_tool import fetch_on_this_day_events
 

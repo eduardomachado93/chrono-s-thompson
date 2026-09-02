@@ -13,8 +13,12 @@ dependencies = [
     "langchain-core>=1.6.0",
     "langchain-openai>=1.6.0",
     "langgraph>=1.2.11",
+    "ipykernel>=6.29.0",
+    "nest-asyncio>=1.6.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.15.0",
+    "openai>=3.5.0",
+    "streamlit>=1.63.0",
 ]
 
 [project.scripts]
@@ -23,3 +27,7 @@ chrono-s-thompson = "chrono_s_thompson:main"
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.pyright]
+extraPaths = ["src", "."]
+

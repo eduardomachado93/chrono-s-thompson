@@ -1,3 +1,4 @@
+#src/chrono_s_thompson/graph/nodes/writer.py
 from datetime import datetime
 import logging
 from pathlib import Path
@@ -20,39 +21,39 @@ llm = ChatOpenAI(
 
 writer_prompt = ChatPromptTemplate.from_messages([
     ("system", GONZO_WRITER_SYSTEM_PROMPT),
-    ("user", """LOCAL/DATA TEMPORAL: {target_date} de {year}
-ACONTECIMENTO: {title}
-DETALHES DO IMPACTO: {description}
-ÂNGULO EDITORIAL GONZO: {hook}
+    ("user", """LOCAL/DATA TEMPORAL: {target_date} of {year}
+EVENT: {title}
+IMPACT DETAILS: {description}
+GONZO EDITORIAL HOOK: {hook}
 
-PARALELO COM O PRESENTE:
+MODERN PARALLEL:
 {modern_context}
 
-Escreva a reportagem completa com seu estilo visceral característico, tecendo o despacho histórico e a reflexão contemporânea final.""")
+Write the full article with your visceral style, weaving the historical reportage and final reflexion on contemporary times.""")
 ])
 
 
 async def write_article_node(state: ChronoState) -> Dict[str, Any]:
-    """Nó final de redação e persistência do artigo em formato Markdown.
+    """Final node for writing and persisting the article in Markdown format.
 
     Args:
-        state: Estado contendo 'curated_story', 'modern_context' e 'target_date'.
+        state: State containing 'curated_story', 'modern_context' and 'target_date'.
 
     Returns:
-        Dicionário com as chaves 'final_article' e 'published_path'.
+        Dictionary with keys 'final_article' and 'published_path'.
     """
     curated_story = state.get("curated_story")
     if not curated_story:
-        logger.error("[Node: writer] Nenhuma história curada disponível para redação.")
+        logger.error("[Node: writer] No curated story available for writing.")
         return {"final_article": None, "published_path": None}
 
     event = curated_story.selected_event
     hook = curated_story.gonzo_hook
-    modern_context = state.get("modern_context", "Sem paralelo moderno registrado.")
-    target_date = state.get("target_date", "Hoje")
+    modern_context = state.get("modern_context", "No registered modern context.")
+    target_date = state.get("target_date", "Today")
 
     logger.info(
-        f"[Node: writer] Redigindo despacho Gonzo para o evento de {event.year}: '{event.title}'..."
+        f"[Node: writer] Writing Gonzo dispatch for the event of {event.year}: '{event.title}'..."
     )
 
     chain = writer_prompt | llm
@@ -64,24 +65,25 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
             "title": event.title,
             "description": event.description,
             "hook": hook,
-            "modern_context": modern_context
+            "modern_context": modern_context,
+            "filename": state.get("filename", "No photo available.")
         })
 
         article_content = str(response.content)
 
-        # Garante a existência do diretório de saída
+        # Ensure the output directory exists
         output_dir: Path = settings.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Gera o nome do arquivo padronizado: YYYY-MM-DD-YEAR.md
+        # Generate a standard filename: YYYY-MM-DD-YEAR.md
         now_str = datetime.now().strftime("%Y-%m-%d")
         safe_title = "".join(c for c in event.title[:30] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
         filename = f"{now_str}_{event.year}_{safe_title}.md"
         file_path = output_dir / filename
 
-        # Persiste o arquivo em disco
+        # Persist the file on disk
         file_path.write_text(article_content, encoding="utf-8")
-        logger.info(f"[Node: writer] Artigo persistido com sucesso em: {file_path}")
+        logger.info(f"[Node: writer] Article persisted successfully at: {file_path}")
 
         return {
             "final_article": article_content,
@@ -89,5 +91,5 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"[Node: writer] Falha na geração do artigo: {exc}", exc_info=True)
+        logger.error(f"[Node: writer] Failed to generate the article: {exc}", exc_info=True)
         return {"final_article": None, "published_path": None}

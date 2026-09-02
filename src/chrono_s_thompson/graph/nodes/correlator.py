@@ -16,34 +16,36 @@ llm = ChatOpenAI(
     temperature=0.7
 )
 
-CORRELATOR_SYSTEM_PROMPT = """Você é um analista investigativo especializado em traçar paralelos temporais entre eventos do passado e o mundo contemporâneo.
+# System prompt defining the role and behavior of the correlator node.
+CORRELATOR_SYSTEM_PROMPT = """You are an investigative analyst specializing in tracing temporal parallels between historical events and contemporary issues.
 
-Sua tarefa:
-1. Analisar o evento histórico selecionado e o contexto contemporâneo fornecido.
-2. Identificar semelhanças estruturais, ironias, repetições de padrões ou evoluções tecnológicas/sociais entre as duas épocas.
-3. Produzir uma síntese concisa, afiada e provocadora (máximo 2 parágrafos) que servirá de insumo para o correspondente temporal finalizar o artigo.
-"""
+Your task:
+1. Analyze the selected historical event and provided contemporary context.
+2. Identify structural similarities, ironic juxtapositions, recurring patterns, or technological/social evolution between the two eras.
+3. Produce a concise, sharp, and provocative synthesis (maximum 2 paragraphs) that will serve as input for the temporal correspondent to finalize the article."""
 
+# Prompt template for constructing the LLM query.
 correlator_prompt = ChatPromptTemplate.from_messages([
     ("system", CORRELATOR_SYSTEM_PROMPT),
-    ("user", """EVENTO HISTÓRICO:
-- Ano: {year}
-- Fato: {title}
-- Detalhes: {description}
-- Ângulo sugerido: {hook}
+    ("user", """EVENT HISTORY:
+- Year: {year}
+- Title: {title}
+- Details: {description}
+- Suggested Angle: {hook}
 
-CONTEXTO / NOTÍCIAS CONTEMPORÂNEAS:
+CONTEMPORARY / NEWS CONTEXT:
 {news_context}
 
-Trace o paralelo temporal destacando como essa dinâmica se reflete nos dias de hoje.""")
+Trace the temporal parallel, highlighting how this dynamic reflects in today's world.""")
 ])
 
 
+# Asynchronous function to search for contemporary news via the Tavily API.
 async def _search_contemporary_news(query: str) -> str:
-    """Busca notícias recentes via API da Tavily caso a chave esteja configurada."""
+    """Searches for recent news using the Tavily API if the key is configured."""
     if not settings.tavily_api_key:
-        logger.info("[Node: correlator] Tavily API key não configurada. Usando síntese baseada em conhecimento do modelo.")
-        return f"Tópico contemporâneo em debate: {query}"
+        logger.info("[Node: correlator] Tavily API key not configured. Using base knowledge synthesis from the model.")
+        return f"Contemporary topic under discussion: {query}"
 
     url = "https://api.tavily.com/search"
     payload = {
@@ -60,45 +62,44 @@ async def _search_contemporary_news(query: str) -> str:
             response.raise_for_status()
             data = response.json()
 
-            # Prioriza a resposta direta sintetizada da Tavily, se existir
+            # Prioritize the synthesized answer from Tavily if available
             if data.get("answer"):
                 return data["answer"]
 
             results = data.get("results", [])
             snippets = [f"- {item.get('title')}: {item.get('content')}" for item in results]
-            return "\n".join(snippets) if snippets else f"Pesquisa sobre: {query}"
+            return "\n".join(snippets) if snippets else f"Search query: {query}"
 
     except Exception as exc:
-        logger.warning(f"[Node: correlator] Falha na consulta Tavily ({exc}). Prosseguindo sem busca externa.")
-        return f"Tópico contemporâneo de referência: {query}"
+        logger.warning(f"[Node: correlator] Tavily API search failure ({exc}). Proceeding without external search.")
+        return f"Contemporary topic of reference: {query}"
 
 
+# Asynchronous function to correlate the historical event with contemporary issues.
 async def correlate_modern_node(state: ChronoState) -> Dict[str, Any]:
-    """Nó responsável por correlacionar o fato histórico selecionado com dilemas modernos.
-
+    """Correlates the selected historical event with current themes.
     Args:
-        state: Estado contendo 'curated_story'.
+        state: State containing 'curated_story'.
 
     Returns:
-        Dicionário com a chave 'modern_context' para o ChronoState.
+        A dictionary with the key 'modern_context' for the ChronoState.
     """
     curated_story = state.get("curated_story")
     if not curated_story:
-        logger.warning("[Node: correlator] Nenhuma história curada disponível para correlação.")
-        return {"modern_context": "Sem contexto histórico selecionado."}
+        logger.warning("[Node: correlator] No curated story available for correlation.")
+        return {"modern_context": "No historical event selected for correlation."}
 
     event = curated_story.selected_event
     modern_topic = curated_story.suggested_modern_topic
     hook = curated_story.gonzo_hook
 
-    logger.info(f"[Node: correlator] Buscando correlações contemporâneas para: '{modern_topic}'")
+    logger.info(f"[Node: correlator] Searching for contemporary parallels for: '{modern_topic}'")
 
-    # 1. Recupera o contexto de notícias atuais
+    # 1. Retrieve the current news context
     news_context = await _search_contemporary_news(modern_topic)
 
-    # 2. Sintetiza o paralelo histórico com o LLM
-    chain = correlator_prompt | llm
-
+    # 2. Synthesize the historical parallel with the LLM
+    chain = correlator_prompt | llm  # Chain the prompt and LLM
     try:
         response = await chain.ainvoke({
             "year": event.year,
@@ -109,10 +110,10 @@ async def correlate_modern_node(state: ChronoState) -> Dict[str, Any]:
         })
 
         modern_context_text = response.content
-        logger.info("[Node: correlator] Síntese contemporânea gerada com sucesso.")
+        logger.info("[Node: correlator] Contemporary synthesis generated successfully.")
 
         return {"modern_context": modern_context_text}
 
     except Exception as exc:
-        logger.error(f"[Node: correlator] Erro ao sintetizar correlação moderna: {exc}", exc_info=True)
-        return {"modern_context": f"Paralelo temático com debates atuais sobre {modern_topic}."}
+        logger.error(f"[Node: correlator] Error generating contemporary correlation: {exc}", exc_info=True)
+        return {"modern_context": f"Thematic parallel regarding {modern_topic}."}
