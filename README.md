@@ -43,7 +43,7 @@ graph TD
 1. **Data Fetcher Node (`fetch_events`)**: Interacts with the local FastMCP server via `stdio` (`get_historical_events`).
 2. **Event Batcher Node (`batch_events`)**: Cleans and filters historical facts into structured Pydantic `EventList` models.
 3. **Curator & Ranker Node (`rank_events`)**: Evaluates narrative friction and selects the main event with a Gonzo editorial angle (`RankedSelection`).
-4. **Photographer Node (`photographer`)**: Craft visual prompts and calls Pollinations AI to generate period-appropriate illustrations saved to `storage/images/`.
+4. **Photographer Node (`photographer`)**: Craft visual prompts and calls OpenAI to generate period-appropriate illustrations saved to `storage/images/`.
 5. **RAG Indexer Node (`index_selected_event`)**: Fetches in-depth Wikipedia text, splits into chunks, and builds an in-memory RAG retriever vector store.
 6. **Gonzo Journalist Node (`write_article`)**: Synthesizes the RAG context, Gonzo hook, and photograph into a Markdown dispatch saved to `storage/output/`.
 
