@@ -10,7 +10,6 @@ from src.chrono_s_thompson.mcp_client.client import ChronoMCPClient, MCPClientEr
 
 logger = logging.getLogger(__name__)
 
-# Reusable MCP client instance
 mcp_client = ChronoMCPClient()
 
 async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
@@ -22,7 +21,6 @@ async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
     Returns:
         A dictionary with the key `raw_events` to partially mutate the ChronoState.
     """
-    print(f"[Node: fetch_events] Current state: {state}")  # Debugging output to trace the current state
     target_date = state.get("target_date")
     if not target_date:
         logger.error("Target date ('target_date') not found in graph state.")

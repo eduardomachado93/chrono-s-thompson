@@ -107,8 +107,22 @@ class ChronoMCPClient:
         Returns:
             List[dict]: A list of dictionaries representing the historical events, or an empty list if no events are found.
         """
+        if len(date_str) != 5 or date_str[2] != '/':
+            logger.error(f"Invalid date format: {date_str}. Expected MM/DD format.")
+            return []
         data = await self.call_tool("get_historical_events", {"date": date_str})
         if isinstance(data, list):
             return data
         return []
 
+    async def get_historical_event_details(self, page_name: str) -> dict:
+        """
+        Retrieves detailed information for a specific historical event.
+
+        Args:
+            page_name (str): The page name of the historical event to retrieve details for.
+        """
+        data = await self.call_tool("get_historical_event_details", {"page_name": page_name})
+        if isinstance(data, dict):
+            return data
+        return {}

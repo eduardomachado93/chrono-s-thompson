@@ -44,6 +44,11 @@ Chrono S. Thompson consists of several interconnected nodes that work together t
    uvicorn src.main:app --reload
    ```
 
+4. Test the MCP server:
+   ```bash
+   npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
+   ```
+   
 ### Configuration
 The `settings.py` file contains all necessary configuration settings. Ensure that you have set up your API keys and other environment variables.
 

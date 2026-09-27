@@ -50,8 +50,6 @@ async def take_photograph_node(state: ChronoState) -> Dict[str, Any]:
             size="1024x1536",
             quality="low"
         )
-        print(f"""Tokens de entrada {result.usage.input_tokens}""")
-        print(f"""Tokens de saida {result.usage.output_tokens}""")
         image_base64 = result.data[0].b64_json
 
         import base64

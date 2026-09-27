@@ -8,3 +8,5 @@ logs/
 storage/output/
 notebooks/storage/output/
 .idea/
+pytest_report.txt
+.pytest_cache/
