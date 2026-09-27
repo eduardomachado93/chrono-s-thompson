@@ -1,71 +1,164 @@
+# <img src="avatar.svg" alt="Chrono S. Thompson Logo" width="50"/> Chrono S. Thompson: The Gonzo Historical Correspondent
 
-# <img src="avatar.svg" alt="alt text" width="50"/> Chrono S. Thompson: The Gonzo Historical Correspondent
-Chrono S. Thompson is an autonomous agentic pipeline designed to solve the temporal disconnect between past records and modern context. Instead of treating historical archives as static encyclopedic entries, the architecture orchestrates a stateful multi-step workflow that:
-
-1. **Fetches historical data** via an isolated Model Context Protocol (MCP) server.
-2. **Performs editorial curation** using deterministic structured outputs (Pydantic).
-3. **Discovers contemporary parallels** via real-time search grounding.
-4. **Drafts high-engagement prose** in the authentic, visceral voice of Gonzo journalism.
-5. **Persists and distributes** daily dispatches automatically.
+> **Portfolio Project** — Highlighting modern AI engineering, stateful multi-agent orchestration with **LangGraph**, Model Context Protocol (**FastMCP**), contextual **RAG**, image synthesis, local **Hugging Face** neural translation, and ultra-fast Python environment management with **`uv`**.
 
 ---
 
-## Architecture Overview
+## 📌 About The Project
 
-Chrono S. Thompson consists of several interconnected nodes that work together to create compelling historical narratives:
+**Chrono S. Thompson** is an autonomous agentic pipeline designed to solve the temporal disconnect between static historical archives and modern narrative engagement. Instead of presenting raw encyclopedic entries, the architecture orchestrates a stateful multi-step workflow that:
 
-1. **Data Fetcher Node**: Retrieves historical data from an isolated MCP server.
-2. **Curator & Ranker Node**: Selects the most interesting historical events and generates editorial hooks.
-3. **Real-Time Correlator**: Finds contemporary parallels for the selected event.
-4. **Gonzo Journalist Node**: Produces high-engagement prose in Gonzo-style journalism.
+1. **Fetches historical data** via an isolated Model Context Protocol (MCP) server connected to Wikipedia's "On This Day" archive.
+2. **Filters & Batches events** using LLM structured outputs (Pydantic).
+3. **Curates & Ranks stories** based on dramatic tension, paradox, and human agency, generating chaotic editorial Gonzo hooks.
+4. **Generates historical illustrations** via AI image generation (Pollinations AI).
+5. **Indexes deep context into RAG** by scraping full Wikipedia content and embedding into a vector store retriever.
+6. **Drafts high-engagement Gonzo prose** in the authentic, visceral voice of Gonzo journalism (Hunter S. Thompson inspired).
+7. **Translates dispatches on-demand** using an offline Hugging Face Transformers pipeline (`Helsinki-NLP/opus-mt-en-pt`).
+8. **Interactive UI**: Persists, archives, and displays dispatches through a sleek **Streamlit** control panel.
 
 ---
 
-## Getting Started
+## ⚡ Powered by `uv`
+
+This repository strictly uses [**`uv`**](https://github.com/astral-sh/uv), the extremely fast Python package installer and resolver written in Rust. All dependency management, virtual environments, scripts, and build tasks are driven by `uv`.
+
+---
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph TD
+    A[🚀 START: Target Date MM/DD] --> B[🛰️ fetch_events node]
+    B -->|FastMCP stdio| C[📦 batch_events node]
+    C -->|Pydantic EventList| D[🏆 rank_events node]
+    D -->|RankedSelection & Hook| E[🎨 photographer node]
+    E -->|Generated Image saved| F[📚 index_selected_event RAG node]
+    F -->|VectorStoreRetriever| G[✍️ write_article node]
+    G -->|Gonzo Dispatch .md| H[🏁 END: Persisted in storage/output]
+```
+
+### LangGraph Stateful Pipeline Nodes
+
+1. **Data Fetcher Node (`fetch_events`)**: Interacts with the local FastMCP server via `stdio` (`get_historical_events`).
+2. **Event Batcher Node (`batch_events`)**: Cleans and filters historical facts into structured Pydantic `EventList` models.
+3. **Curator & Ranker Node (`rank_events`)**: Evaluates narrative friction and selects the main event with a Gonzo editorial angle (`RankedSelection`).
+4. **Photographer Node (`photographer`)**: Craft visual prompts and calls Pollinations AI to generate period-appropriate illustrations saved to `storage/images/`.
+5. **RAG Indexer Node (`index_selected_event`)**: Fetches in-depth Wikipedia text, splits into chunks, and builds an in-memory RAG retriever vector store.
+6. **Gonzo Journalist Node (`write_article`)**: Synthesizes the RAG context, Gonzo hook, and photograph into a Markdown dispatch saved to `storage/output/`.
+
+---
+
+## 🛠️ Stack & Technologies
+
+* **Language**: Python 3.13+
+* **Package Manager & Runner**: [`uv`](https://github.com/astral-sh/uv)
+* **Agent Framework**: LangGraph, LangChain Core & LangChain OpenAI
+* **Protocol**: FastMCP (Model Context Protocol over `stdio`)
+* **Data Validation**: Pydantic v2 & `pydantic-settings`
+* **Vector Search / RAG**: LangChain Text Splitters, In-Memory Vector Store
+* **Neural Translation**: Hugging Face `transformers` (`Helsinki-NLP/opus-mt-en-pt`)
+* **Dashboard / UI**: Streamlit
+* **Testing**: `pytest`, `pytest-asyncio`
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.8+
-- Required libraries: `fastapi`, `pydantic`, `uvicorn`
+
+* Python 3.13+ installed.
+* [**`uv`**](https://docs.astral.sh/uv/getting-started/installation/) installed on your machine.
+* OpenAI API Key set in your `.env` file (`OPENAI_API_KEY=your_key_here`).
 
 ### Installation
-1. Clone the repository:
+
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/chrono-s-thompson.git
+   git clone https://github.com/eduardomachado93/chrono-s-thompson.git
    cd chrono-s-thompson
    ```
 
-2. Install dependencies:
+2. **Sync dependencies with `uv`**:
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
 
-3. Run the pipeline:
+3. **Configure environment variables**:
+   Create a `.env` file based on `.env.example`:
    ```bash
-   uvicorn src.main:app --reload
+   cp .env.example .env
    ```
-
-4. Test the MCP server:
-   ```bash
-   npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
-   ```
-   
-### Configuration
-The `settings.py` file contains all necessary configuration settings. Ensure that you have set up your API keys and other environment variables.
 
 ---
 
-## Contributing
+## 💻 Running the Application
 
-We welcome contributions! Please follow these steps to contribute to the project:
+### 🖥️ Streamlit Web Interface
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/AmazingFeature`).
-3. Make your changes and commit them (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a pull request.
+Launch the interactive control panel with `uv`:
+
+```bash
+uv run streamlit run app.py
+```
+
+Features included in the web dashboard:
+* Custom date selection (`MM/DD`).
+* **Random Dispatch**: Automatic execution of the full LangGraph pipeline.
+* **Select Event**: Browse fetched historical events and choose which story to generate.
+* **Newsroom Archives**: Read all previously generated dispatches.
+* **Offline Translation**: One-click translation of dispatches to Portuguese using Hugging Face Transformers.
+
+### 🔌 Running the MCP Server Inspector
+
+To inspect and test the FastMCP historical server using standard MCP tools:
+
+```bash
+npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
+```
+
+### 🧪 Running Tests
+
+Run unit tests across graph nodes and MCP client via `uv`:
+
+```bash
+uv run pytest
+```
 
 ---
 
-## License
+## 📂 Project Structure
+
+```
+chrono-s-thompson/
+├── app.py                      # Streamlit Control Panel Interface
+├── pyproject.toml              # Project metadata & dependencies (uv build)
+├── uv.lock                     # Deterministic dependency lock file
+├── avatar.svg                  # Chrono S. Thompson Avatar Logo
+├── src/
+│   └── chrono_s_thompson/
+│       ├── core/               # State schemas (ChronoState) & Translation utilities
+│       ├── graph/              # LangGraph workflow builder, nodes & prompts
+│       │   ├── nodes/          # fetcher, batcher, ranker, photographer, indexer, writer
+│       │   └── prompts/        # System prompts & Gonzo style directives
+│       ├── mcp_client/         # Client interface for MCP stdio transport
+│       └── mcp_server/         # FastMCP historical data server & Wikipedia tools
+├── storage/
+│   ├── images/                 # Generated dispatch historical illustrations
+│   └── output/                 # Persisted Gonzo dispatches (.md)
+└── tests/                      # Pytest suite for nodes and MCP components
+```
+
+---
+
+## 👤 Author & Portfolio Context
+
+Developed by **Eduardo Felipe Machado** as part of an advanced AI Engineering portfolio demonstrating agentic workflows, MCP server design, RAG pipelines, and modern Python tooling (`uv`).
+
+* **GitHub**: [@eduardomachado93](https://github.com/eduardomachado93)
+
+---
+
+## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

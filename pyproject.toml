@@ -23,6 +23,10 @@ dependencies = [
     "pytest-asyncio>=1.4.0",
     "langchain-text-splitters>=1.1.2",
     "bs4>=0.0.2",
+    "transformers>=4.40.0",
+    "sacremoses>=0.1.1",
+    "sentencepiece>=0.2.0",
+    "torchvision>=0.29.0",
 ]
 
 [project.scripts]

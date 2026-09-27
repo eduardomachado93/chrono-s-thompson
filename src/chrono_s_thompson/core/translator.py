@@ -1,0 +1,121 @@
+# src/chrono_s_thompson/core/translator.py
+"""
+Hugging Face Transformers Translation implementation for Chrono S. Thompson.
+Follows the official Hugging Face Translation task specification:
+https://huggingface.co/docs/transformers/en/tasks/translation
+"""
+import logging
+import ssl
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+from src.chrono_s_thompson.core.state import ChronoState
+
+logger = logging.getLogger(__name__)
+
+# Valid official English -> Portuguese model on Hugging Face Hub
+DEFAULT_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-tc-big-en-pt"
+
+@lru_cache(maxsize=1)
+def get_translator_components(model_name: str = DEFAULT_TRANSLATION_MODEL):
+    """
+    Lazy loads and caches the Hugging Face AutoTokenizer and AutoModelForSeq2SeqLM
+    following the official Hugging Face Translation task documentation:
+    https://huggingface.co/docs/transformers/en/tasks/translation
+    """
+    try:
+        # Disable SSL verification if Windows SSL bundle is missing/custom enterprise proxy
+        try:
+            ssl._create_default_https_context = ssl._create_unverified_context
+        except Exception:
+            pass
+
+        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+        logger.info(f"[Translator] Loading Hugging Face model and tokenizer for '{model_name}'...")
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        logger.info("[Translator] Model and tokenizer loaded successfully.")
+        return tokenizer, model
+
+    except Exception as exc:
+        logger.error(f"[Translator] Failed to load transformers model/tokenizer: {exc}", exc_info=True)
+        return None, None
+
+def translate_markdown_text(text: str, model_name: str = DEFAULT_TRANSLATION_MODEL) -> str:
+    """
+    Translates Markdown text paragraph by paragraph using Hugging Face AutoModelForSeq2SeqLM.
+    Preserves images, headers, horizontal rules, code blocks, and metadata signatures.
+    """
+    if not text or not text.strip():
+        return ""
+
+    tokenizer, model = get_translator_components(model_name)
+    if not tokenizer or not model:
+        logger.warning("[Translator] Transformers model/tokenizer unavailable. Returning original text.")
+        return text
+
+    paragraphs = text.split("\n\n")
+    translated_paragraphs = []
+
+    for paragraph in paragraphs:
+        stripped = paragraph.strip()
+        # Preserve HTML images, markdown image lines, horizontal rules, metadata lines, code blocks
+        if (
+            not stripped
+            or stripped.startswith("<img")
+            or stripped.startswith("![")
+            or stripped.startswith("---")
+            or stripped.startswith("*— Chrono")
+            or stripped.startswith("```")
+        ):
+            translated_paragraphs.append(paragraph)
+            continue
+
+        try:
+            # Preserve headers (# Title -> # Tradução)
+            header_prefix = ""
+            text_to_translate = stripped
+            if stripped.startswith("#"):
+                parts = stripped.split(" ", 1)
+                if len(parts) == 2 and all(c == "#" for c in parts[0]):
+                    header_prefix = parts[0] + " "
+                    text_to_translate = parts[1]
+
+            inputs = tokenizer(text_to_translate, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            outputs = model.generate(inputs["input_ids"], attention_mask=inputs.get("attention_mask"), max_new_tokens=512)
+            translated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            translated_paragraphs.append(f"{header_prefix}{translated_text}")
+
+        except Exception as err:
+            logger.warning(f"[Translator] Error translating paragraph: {err}. Keeping original paragraph.")
+            translated_paragraphs.append(paragraph)
+
+    return "\n\n".join(translated_paragraphs)
+
+async def translate_article_node(state: ChronoState) -> Dict[str, Any]:
+    """
+    LangGraph node: Translates final_article using Hugging Face transformers pipeline if translate_to_pt is True.
+    """
+    should_translate = state.get("translate_to_pt", False)
+    final_article = state.get("final_article")
+
+    if not should_translate or not final_article:
+        logger.info("[Node: translate_article] Translation skipped (translate_to_pt=False or no final_article).")
+        return {"translated_article": None}
+
+    logger.info("[Node: translate_article] Translating final article to Portuguese via transformers pipeline...")
+    translated = translate_markdown_text(final_article)
+
+    published_path = state.get("published_path")
+    if published_path:
+        pt_path = Path(published_path).with_suffix(".pt.md")
+        try:
+            pt_path.write_text(translated, encoding="utf-8")
+            logger.info(f"[Node: translate_article] Translated article persisted at: {pt_path}")
+        except Exception as e:
+            logger.error(f"[Node: translate_article] Failed to save translated file: {e}")
+
+    return {"translated_article": translated}

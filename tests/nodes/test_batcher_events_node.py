@@ -4,7 +4,7 @@ This module contains tests for the rank_events_node.py module. It sets up a test
 import pytest
 
 from src.chrono_s_thompson.graph.nodes.batcher import batch_events_node
-from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, RankedSelection
+from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, EventList, HistoricalEvent
 from typing import Any, Dict
 
 @pytest.mark.asyncio
@@ -116,7 +116,7 @@ async def test_batch_events() -> Dict[str, Any]:
                        raw_event13, 
                        raw_event14, 
                        raw_event15],
-        "batched_events": [],
+        "batched_events": EventList(events=[]),
         "detailed_event": None,
         "curated_story": None,
         "final_article": None,

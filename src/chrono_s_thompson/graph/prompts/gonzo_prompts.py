@@ -53,3 +53,7 @@ Evaluate this preliminary list of historical events:
 {events_batch}
 
 Select only the 2 events with the greatest dramatic tension, danger, scandal, or twist!"""
+
+PHOTOGRAPHER_PROMPT = """
+Realistic graphic novel illustration, detailed comic art in a grounded photorealistic style, high-contrast ink linework with rich digital coloring. In the scene, gonzo temporal correspondent Chrono S. Thompson (a sharp-featured man in his late 30s wearing a weathered white bucket hat, amber-tinted aviator sunglasses, a cigarette holder in his mouth, wearing a wrinkled khaki field shirt with a leather reporter shoulder strap and notepad in hand) is caught candidly in the middle of {event_title}. Dramatic chiaroscuro lighting, cinematic composition, realistic anatomy and depth, mature comic book aesthetic.
+"""

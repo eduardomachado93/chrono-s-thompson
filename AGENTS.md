@@ -1,149 +1,161 @@
 # 🕶️ AGENTS.md — Chrono S. Thompson Multi-Agent Architecture
 
-This document specifies the internal orchestration, state transitions, domain responsibilities, and prompt engineering protocols driving **Chrono S. Thompson: The Gonzo Historical Correspondent**.
+> **Portfolio Specification** — Detailed technical documentation of the multi-agent system, state transitions, MCP contracts, and prompt engineering protocols driving **Chrono S. Thompson: The Gonzo Historical Correspondent**, built with **LangGraph** and managed with **`uv`**.
 
 ---
 
 ## 🧭 Executive Overview
 
-Chrono S. Thompson is an autonomous agentic pipeline designed to solve the temporal disconnect between past records and modern context. Instead of treating historical archives as static encyclopedic entries, the architecture orchestrates a stateful multi-step workflow that:
+Chrono S. Thompson is an autonomous agentic pipeline designed to bridge the temporal disconnect between historical records and contemporary engagement. Instead of treating historical archives as static encyclopedic entries, the architecture orchestrates a stateful multi-step workflow that:
 
-1. **Fetches historical data** via an isolated Model Context Protocol (MCP) server.
-2. **Performs editorial curation** using deterministic structured outputs (Pydantic).
-3. **Discovers contemporary parallels** via real-time search grounding.
-4. **Drafts high-engagement prose** in the authentic, visceral voice of Gonzo journalism.
-5. **Persists and distributes** daily dispatches automatically.
+1. **Fetches historical data** via an isolated Model Context Protocol (**FastMCP**) server using `stdio` transport.
+2. **Batches & cleans raw events** using LLM structured outputs (Pydantic `EventList`).
+3. **Performs editorial curation** using deterministic structured outputs (Pydantic `RankedSelection`), identifying chaotic narrative friction.
+4. **Synthesizes visual illustrations** by generating prompt-tailored historical photographs stored in `storage/images/`.
+5. **Performs RAG context indexing** by scraping full Wikipedia content and creating an in-memory `VectorStoreRetriever`.
+6. **Drafts high-engagement prose** in the visceral voice of Gonzo journalism (Hunter S. Thompson inspired).
+7. **Persists and archives** daily dispatches automatically as Markdown files in `storage/output/`.
 
-              ┌────────────────────────┐
-              │    START (Trigger)     │
-              └───────────┬────────────┘
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │   Data Fetcher Node    │ <─── [MCP Server / stdio]
-              └───────────┬────────────┘      (Wikimedia 'On This Day')
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │  Curator / Ranker Node │ <─── Structured Output
-              └───────────┬────────────┘      (RankedSelection Schema)
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │ Real-Time Correlator   │ <─── Search Grounding / Tool
-              └───────────┬────────────┘      (Modern Parallel Anchor)
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │ Gonzo Journalist Node  │ <─── Persona & System Directives
-              └───────────┬────────────┘      (Markdown Article Generator)
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │       END / I/O        │ ────> storage/output/{DATE}.md
-              └────────────────────────┘
+---
+
+## 📐 Pipeline & State Graph Flow
+
+```mermaid
+graph TD
+    START([START Trigger]) --> Fetcher[1. Data Fetcher Node\nfetch_events_node]
+    Fetcher -->|MCP stdio payload| Batcher[2. Batcher Node\nbatch_events_node]
+    Batcher -->|Filtered EventList| Ranker[3. Curator / Ranker Node\nrank_events_node]
+    Ranker -->|RankedSelection & Hook| Photographer[4. Photographer Node\ntake_photograph_node]
+    Photographer -->|Saved Image Filename| Indexer[5. RAG Indexer Node\nindex_selected_event]
+    Indexer -->|VectorStoreRetriever| Writer[6. Gonzo Journalist Node\nwrite_article_node]
+    Writer -->|Markdown Dispatch| END([END Storage / UI])
+```
 
 ---
 
 ## 📦 Global Shared State (`ChronoState`)
 
-State transitions are strictly typed to enforce zero runtime drift and seamless validation between nodes.
+State transitions are strictly typed in `src/chrono_s_thompson/core/state.py` to enforce zero runtime drift and seamless validation across nodes.
 
 | Attribute | Type | Description |
 |---|---|---|
-| `target_date` | `str` | Calendar date target (`MM/DD`) |
-| `raw_events` | `List[dict]` | Normalized raw events payload consumed from MCP |
-| `curated_story` | `Optional[RankedSelection]` | Pydantic model representing the selected event + editorial hook |
-| `modern_context` | `Optional[str]` | Contemporary news summary and contextual bridge |
-| `final_article` | `Optional[str]` | Generated Gonzo dispatch in full Markdown |
-| `published_path` | `Optional[str]` | Filesystem path of the stored `.md` file |
+| `target_date` | `str` | Calendar date target in `MM/DD` format. |
+| `raw_events` | `List[HistoricalEvent]` | Normalized raw events payload returned by the FastMCP tool. |
+| `batched_events` | `EventList` | LLM-filtered structured collection of historical events. |
+| `curated_story` | `Optional[RankedSelection]` | Pydantic model representing the selected event and Gonzo hook. |
+| `detailed_event` | `Optional[DetailedEvent]` | In-depth historical event details when queried. |
+| `filename` | `Optional[str]` | Local filename of the generated photograph image (`storage/images/`). |
+| `custom_event` | `Optional[HistoricalEvent]` | User-selected historical event from Streamlit UI override. |
+| `retriever` | `Optional[VectorStoreRetriever]` | In-memory vector store retriever built from scraped Wikipedia content. |
+| `final_article` | `Optional[str]` | Complete Gonzo article formatted in Markdown. |
+| `published_path` | `Optional[str]` | Filesystem path of the persisted dispatch (`storage/output/{date}_{title}.md`). |
 
 ---
 
 ## 🤖 Detailed Agent & Node Specifications
 
-### 1. Data Fetcher Node (`fetcher.py`)
-* **Role:** Subprocess I/O & Tool Orchestration.
-* **Mechanism:** Spawns a local `FastMCP` server over standard I/O (`stdio`), invoking the `get_historical_events` tool.
+### 1. Data Fetcher Node (`src/chrono_s_thompson/graph/nodes/fetcher.py`)
+* **Role:** Subprocess I/O & MCP Tool Orchestration.
+* **Mechanism:** Interacts with the local `FastMCP` server over standard I/O (`stdio`), invoking the `get_historical_events` tool.
 * **Input State:** `target_date`
-* **Output State Mutation:** `{"raw_events": List[dict]}`
-* **Failure Mode:** Retries with exponential backoff on HTTP timeouts; fails gracefully to fallback cache if Wikimedia API is unreachable.
+* **Output State Mutation:** `{"raw_events": List[HistoricalEvent]}`
+* **Failure Guardrail:** Retries with exponential backoff; falls back gracefully to cached mock data if network calls fail.
 
 ---
 
-### 2. Curator & Ranker Node (`ranker.py`)
+### 2. Event Batcher Node (`src/chrono_s_thompson/graph/nodes/batcher.py`)
+* **Role:** Structured Data Filtering & Deduplication.
+* **Mechanism:** Passes raw historical events payload into an LLM with `.with_structured_output(EventList)` to structure and prune noisy data.
+* **Input State:** `raw_events`
+* **Output State Mutation:** `{"batched_events": EventList}`
+
+---
+
+### 3. Curator & Ranker Node (`src/chrono_s_thompson/graph/nodes/ranker.py`)
 * **Role:** Editorial Intelligence & Semantic Selection.
-* **Mechanism:** Analyzes the batch of historical events and enforces schema constraints using LLM Function Calling (`.with_structured_output(RankedSelection)`).
+* **Mechanism:** Evaluates batched events and enforces schema constraints using `.with_structured_output(RankedSelection)`.
 * **Selection Heuristics:**
-  * High narrative friction, disruption, or paradox.
-  * Strong human agency, scientific breakthrough, or political drama.
-  * Receptivity to modern thematic correlation.
-* **Input State:** `raw_events`, `target_date`
+  * High narrative tension, political chaos, or irony.
+  * Strong human drama or breakthrough moments.
+  * Formulates a sharp, satirical Gonzo editorial hook.
+* **Input State:** `batched_events`, `custom_event` (optional override)
 * **Output State Mutation:** `{"curated_story": RankedSelection}`
 
 ```python
 class RankedSelection(BaseModel):
-    selected_event: HistoricalEvent
-    gonzo_hook: str = Field(description="The chaotic, ironic, or urgent angle chosen for reporting.")
-    suggested_modern_topic: str = Field(description="Modern theme or query for real-time news search.")
+    selected_event: HistoricalEvent = Field(description="The chosen historical event.")
+    gonzo_hook: str = Field(description="The chaotic, urgent, or ironic editorial angle.")
+```
 
-3. Real-Time Correlator Node (correlator.py)
-Role: Contemporary Grounding & Search Synthesis.
+---
 
-Mechanism: Takes the suggested_modern_topic generated by the Curator and queries live web search tools (e.g., Tavily API) to extract current events that echo the historical theme.
+### 4. Photographer Node (`src/chrono_s_thompson/graph/nodes/photographer.py`)
+* **Role:** Visual Synthesis & Image Generation.
+* **Mechanism:** Constructs a detailed prompt based on the selected event, calls Pollinations AI image generation, and persists the image locally.
+* **Input State:** `curated_story`
+* **Output State Mutation:** `{"filename": str}` (saved to `storage/images/{filename}`)
 
-Input State: curated_story
+---
 
-Output State Mutation: {"modern_context": str}
+### 5. RAG Indexer Node (`src/chrono_s_thompson/graph/nodes/indexer.py`)
+* **Role:** Knowledge Retrieval & In-Memory Vector Store Construction.
+* **Mechanism:** Scrapes in-depth Wikipedia text for the chosen story, splits text into semantic chunks via `RecursiveCharacterTextSplitter`, and embeds into a `VectorStoreRetriever`.
+* **Input State:** `curated_story`
+* **Output State Mutation:** `{"retriever": VectorStoreRetriever}`
 
-4. Gonzo Journalist Node (writer.py)
-Role: Creative Narrative Production & Stylistic Synthesis.
+---
 
-Mechanism: Ingests the historical facts, the editorial hook, and the modern parallel, adopting the persona of Chrono S. Thompson.
+### 6. Gonzo Journalist Node (`src/chrono_s_thompson/graph/nodes/writer.py`)
+* **Role:** Creative Narrative Production & Stylistic Synthesis.
+* **Mechanism:** Ingests the RAG retriever context, the editorial hook, and the photograph path, adopting the persona of Chrono S. Thompson.
+* **Persona Directives:**
+  * **First-Person Immersion:** Report as an eyewitness present at the historical moment.
+  * **Pacing & Tone:** Urgent, frenetic, satirical, razor-sharp, and unvarnished Gonzo prose.
+  * **Visual Embedding:** Embeds the generated image into the Markdown header.
+* **Input State:** `curated_story`, `retriever`, `filename`
+* **Output State Mutation:** `{"final_article": str, "published_path": str}`
 
-Persona Directives:
+---
 
-First-Person Immersion: Report from the scene as an eyewitness breathing the dust of the era.
+## 🛠️ FastMCP Tool Contracts
 
-Pacing & Tone: Frenetic, urgent, razor-sharp, satirical, and fiercely observational.
+The isolated FastMCP server (`src/chrono_s_thompson/mcp_server/server.py`) exposes tools over `stdio`:
 
-The Temporal Bridge: Conclude by contrasting the historical moment with the modern parallel, highlighting humanity's recurring patterns and systemic ironies.
+### `get_historical_events`
+* **Transport:** `stdio`
+* **Parameters:** `date` (string, `MM/DD` format)
+* **Returns:** JSON serialized array of `HistoricalEvent` objects (`year`, `title`, `page_name`, `category`).
 
-Input State: curated_story, modern_context
+### `get_historical_event_details`
+* **Transport:** `stdio`
+* **Parameters:** `page_name` (string, Wikipedia page identifier)
+* **Returns:** Detailed content object for downstream indexing.
 
-Output State Mutation: {"final_article": str, "published_path": str}
+---
 
-🛠️ MCP Tool Contracts
-The MCP server exposes isolated historical data tools without leaking business logic into the orchestration layer.
+## 🧰 Project Execution with `uv`
 
-get_historical_events
-Transport: stdio
+All execution, dependency management, and testing are handled via **`uv`**:
 
-Parameters:
+```bash
+# Sync virtual environment dependencies
+uv sync
 
-date (string, required): Date formatted as MM/DD (e.g., 08/27).
+# Run Streamlit control panel
+uv run streamlit run app.py
 
-Returns: JSON serialized array containing:
+# Run unit and node test suite
+uv run pytest
 
-JSON
-[
-  {
-    "year": 1883,
-    "title": "Eruption of Krakatoa reaches its violent climax.",
-    "description": "The catastrophic volcanic explosion generated the loudest sound in recorded history...",
-    "category": "História Geral"
-  }
-]
-🔒 Reliability, Guardrails & Production Standards
-Deterministic Contracts: All cross-node communications use Pydantic models to prevent downstream type errors.
+# Test MCP server via inspector
+npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
+```
 
-Context Isolation: MCP tool execution lives in an isolated subprocess, ensuring LLM inference is decoupled from HTTP I/O failures.
+---
 
-Observability: Compatible with LangSmith tracing via environment flags (LANGCHAIN_TRACING_V2=true) to monitor node latency, token expenditure, and tool invocation graphs.
+## 🔒 Reliability, Guardrails & Production Standards
 
-
-<ElicitationsGroup message="Como deseja prosseguir com a implementação?">
-  <Elicitation label="Construir o graph/builder.py e main.py completos" query="Gere o código de src/graph/builder.py e src/main.py para conectar todos os nós e rodar o pipeline com uv."/>
-  <Elicitation label="Gerar o gonzo_prompts.py com o system prompt completo" query="Gere o arquivo src/graph/prompts/gonzo_prompts.py com todas as diretrizes de escrita estilizada."/>
-  <Elicitation label="Gerar o README.md principal do repositório" query="Gere o README.md principal do repositório no GitHub com badges, arquitetura e instruções de instalação via uv."/>
-</ElicitationsGroup>
+* **Deterministic Contracts:** All cross-node state updates strictly enforce Pydantic schemas.
+* **Decoupled Architecture:** FastMCP server runs in an isolated stdio process, preventing API/HTTP failures from corrupting state graph execution.
+* **Local Offline Translation:** Streamlit dashboard features local translation via Hugging Face Transformers pipeline without external API calls.
+* **Portfolio Showcase:** Designed by Eduardo Felipe Machado to highlight end-to-end multi-agent orchestration engineering.
