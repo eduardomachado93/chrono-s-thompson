@@ -19,17 +19,7 @@ async def test_index_selected_event() -> Dict[str, Any]:
         ),
         gonzo_hook="Forget rulers and treaties: here the Earth lost its composure, exploded in screams, and showed that nature also knows how to make a power play — with right flames in the sky, killer waves, and a roar so obscene it became a global legend.",
     )
-    test_state: ChronoState = {
-        "target_date": "08/27",
-        "raw_events": [],
-        "detailed_event": None,
-        "curated_story": ranked_selection,
-        "final_article": None,
-        "published_path": None,
-        "filename": None,
-        "custom_event": None,
-        "retriever": None
-    }
+    test_state = ChronoState(curated_story=ranked_selection)
     try:
         return await index_selected_event(test_state)
     except Exception as e:
@@ -41,3 +31,4 @@ if __name__ == "__main__":
     result = asyncio.run(test_index_selected_event())
     docs = result['retriever'].invoke("Forget rulers and treaties: here the Earth lost its composure, exploded in screams, and showed that nature also knows how to make a power play — with right flames in the sky, killer waves, and a roar so obscene it became a global legend.")
     print(f"Retrieved {len(docs)} documents for the Krakatoa eruption.")
+    print(f"\n{docs}\n")

@@ -15,14 +15,13 @@ client = OpenAI(
 )
 
 async def take_photograph_node(state: ChronoState) -> Dict[str, Any]: 
-    curated_story = state.get("curated_story")
+    curated_story = state.curated_story
     if not curated_story:
-        logger.error("[Node: writer] Nenhuma história curada disponível para a foto.")
-        return {"final_article": None, "published_path": None}
+        return {"error": None, "error_msg": "[Node: photographer] No curated story available for the photo."}
 
     event = curated_story.selected_event
     logger.info(
-        f"[Node: writer] Tirando a foto do evento {event.year}: '{event.title}'..."
+        f"[Node: photographer] Taking photograph of event {event.year}: '{event.title}'..."
     )
     try:
         result = client.images.generate(
@@ -36,11 +35,11 @@ async def take_photograph_node(state: ChronoState) -> Dict[str, Any]:
         import base64
         image_bytes = base64.b64decode(image_base64)
 
-        # Garante a existência do diretório de saída
+        # Ensure output directory exists
         output_dir: Path = settings.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
-         # Gera o nome do arquivo padronizado: YYYY-MM-DD-YEAR.md
+        # Generate standardized file name: YYYY-MM-DD_photo_YEAR_title.png
         now_str = datetime.now().strftime("%Y-%m-%d")
         safe_title = "".join(c for c in event.title[:30] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
         filename = f"{now_str}_photo_{event.year}_{safe_title}.png"
@@ -51,8 +50,7 @@ async def take_photograph_node(state: ChronoState) -> Dict[str, Any]:
             f.write(image_bytes)
 
         return {
-            "filename": filename
+            "photo_filename": filename
         }    
     except Exception as exc:
-        logger.error(f"[Node: writer] Falha na geração do artigo: {exc}", exc_info=True)
-        return {"final_article": None, "published_path": None}
+        return {"error": True, "error_msg": f"[Node: photographer] Failed to generate photo: {exc}"}

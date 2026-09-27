@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from pydantic import FilePath
 
 from config.settings import settings
 from src.chrono_s_thompson.core.state import ChronoState
@@ -25,20 +26,15 @@ Write the full article with your visceral style, weaving the historical reportag
 ])
 
 async def write_article_node(state: ChronoState) -> Dict[str, Any]:
-    curated_story = state.get("curated_story")
-    if not curated_story:
-        logger.error("[Node: writer] No curated story available for writing.")
-        return {"final_article": None, "published_path": None}
-
-    retriever = state.get("retriever")
-    if retriever is None:
-        logger.error("[Node: writer] No retriever available for writing.")
-        return {"final_article": None, "published_path": None}
+    curated_story = state.curated_story
+    retriever = state.retriever
+    if not curated_story or retriever is None:
+        return {"error": True, "error_msg": "Error on getting the required states."}
 
     event = curated_story.selected_event
     hook = curated_story.gonzo_hook
-    target_date = state.get("target_date", "Today")
-    docs = await retriever.ainvoke(hook, **{"k": 10})
+    target_date = state.target_date
+    docs = await retriever.ainvoke(hook, **{"k": 6})
     context = "\n\n".join([d.page_content for d in docs]) if docs else "No specific archival documents found."
 
     llm = ChatOpenAI(
@@ -61,7 +57,6 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
 
         article_content = response.content
 
-        # 2. Persistência em disco
         output_dir: Path = Path(settings.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -75,9 +70,8 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
 
         return {
             "final_article": article_content,
-            "published_path": str(file_path)
+            "published_path": FilePath(file_path)
         }
 
     except Exception as exc:
-        logger.error(f"[Node: writer] Failed to generate article: {exc}", exc_info=True)
-        return {"final_article": None, "published_path": None}
+        return {"error": True, "error_msg": f"[Node: writer] Failed to generate article: {exc}"}

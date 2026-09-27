@@ -4,7 +4,7 @@ This module contains tests for the rank_events_node.py module. It sets up a test
 import pytest
 
 from src.chrono_s_thompson.graph.nodes.batcher import batch_events_node
-from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, EventList, HistoricalEvent
+from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent
 from typing import Any, Dict
 
 @pytest.mark.asyncio
@@ -99,35 +99,25 @@ async def test_batch_events() -> Dict[str, Any]:
                     page_name="Magna Carta is signed...",
                     category="Medieval History"
                 )   
-    test_state: ChronoState = {
-        "target_date": "08/27",
-        "raw_events": [raw_event1, 
-                       raw_event2, 
-                       raw_event3, 
-                       raw_event4, 
-                       raw_event5, 
-                       raw_event6, 
-                       raw_event7, 
-                       raw_event8, 
-                       raw_event9, 
-                       raw_event10, 
-                       raw_event11,
-                       raw_event12, 
-                       raw_event13, 
-                       raw_event14, 
-                       raw_event15],
-        "batched_events": EventList(events=[]),
-        "detailed_event": None,
-        "curated_story": None,
-        "final_article": None,
-        "published_path": None,
-        "filename": None,
-        "custom_event": None,
-        "retriever": None
-    }
+    test_state = ChronoState(
+        raw_events=[raw_event1,
+                   raw_event2,
+                   raw_event3,
+                   raw_event4,
+                   raw_event5,
+                   raw_event6,
+                   raw_event7,
+                   raw_event8,
+                   raw_event9,
+                   raw_event10,
+                   raw_event11,
+                   raw_event12,
+                   raw_event13,
+                   raw_event14,
+                   raw_event15]
+    )
     try:
-        result = await batch_events_node(test_state)
-        return result
+        return await batch_events_node(test_state)
     except Exception as e:
         print(e)
         return {"batched_events": []}

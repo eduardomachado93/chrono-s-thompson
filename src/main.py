@@ -4,6 +4,7 @@ import logging
 import sys
 
 from config.settings import settings
+from src.chrono_s_thompson.core.state import ChronoState
 from src.chrono_s_thompson.graph.builder import build_chrono_graph
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -21,25 +22,18 @@ logger = logging.getLogger("ChronoMain")
 
 async def main():
     today_str = datetime.now().strftime("%m/%d")
-    logger.info(f"🕶️  Iniciando despacho de Chrono S. Thompson para {today_str}...")
+    logger.info(f"🕶️  Starting Chrono S. Thompson dispatch for {today_str}...")
 
     app = build_chrono_graph()
+    print(app.get_graph().draw_ascii())
 
-    initial_state = {
-        "target_date": today_str,
-        "raw_events": [],
-        "curated_story": None,
-        "modern_context": None,
-        "final_article": None,
-        "published_path": None,
-    }
-
+    initial_state = ChronoState()
     result = await app.ainvoke(initial_state)
 
     print("\n" + "=" * 60)
-    print("📰  DESPACHO GONZO PUBLICADO COM SUCESSO!")
+    print("📰  GONZO DISPATCH PUBLISHED SUCCESSFULLY!")
     print("=" * 60)
-    print(f"📁 Arquivo salvo em: {result.get('published_path')}\n")
+    print(f"📁 File saved to: {result.get('published_path')}\n")
     print(result.get("final_article"))
 
 

@@ -46,5 +46,4 @@ def clean_text(text: str) -> str:
     text_without_curly_brackets = remove_curly_brackets(text_without_html)
     text_without_wiki_links = remove_wiki_links(text_without_curly_brackets)
     cleaned_text = remove_references_section(text_without_wiki_links)
-    print(cleaned_text)
     return cleaned_text.strip()

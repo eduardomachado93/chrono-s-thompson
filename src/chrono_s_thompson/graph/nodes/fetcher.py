@@ -21,13 +21,12 @@ async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
     Returns:
         A dictionary with the key `raw_events` to partially mutate the ChronoState.
     """
-    target_date = state.get("target_date")
+    target_date = state.target_date
     if not target_date:
-        logger.error("Target date ('target_date') not found in graph state.")
-        return {"raw_events": []}
-    if state.get("raw_events") and len(state.get("raw_events")) > 0:
+        return {"error": True, "error_msg": "Target date ('target_date') not found in graph state"}
+    if state.raw_events and len(state.raw_events) > 0:
         logger.info("[Node: fetch_events] Raw events already present in state; skipping fetch.")
-        return {"raw_events": state.get("raw_events")}
+        return {"raw_events": state.raw_events}
     
     logger.info(f"[Node: fetch_events] Querying MCP Server for the date: {target_date}")
 
@@ -37,11 +36,5 @@ async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
             f"[Node: fetch_events] Success: {len(events)} historical events retrieved via MCP."
         )
         return {"raw_events": events}
-
     except MCPClientError as exc:
-        logger.error(
-            f"[Node: fetch_events] Error communicating with the MCP Server: {exc}",
-            exc_info=True
-        )
-        # Return an empty list to avoid abrupt graph interruption
-        return {"raw_events": []}
+        return {"error": True, "error_msg": f"[Node: fetch_events] Error communicating with the MCP Server: {exc}"}

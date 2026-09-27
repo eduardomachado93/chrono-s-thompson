@@ -4,35 +4,28 @@ This module contains tests for the rank_events_node.py module. It sets up a test
 import pytest
 
 from src.chrono_s_thompson.graph.nodes.ranker import rank_events_node
-from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, RankedSelection
+from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, EventList
 from typing import Any, Dict
 
 @pytest.mark.asyncio
 async def test_rank_events() -> Dict[str, Any]:
-    raw_event1 = HistoricalEvent(
+    historical_event1 = HistoricalEvent(
                     year=1883,
                     title="Eruption of Krakatoa reaches its violent climax.",
                     page_name="The catastrophic volcanic explosion generated the loudest sound in recorded history...",
                     category="General History"
                 )
-    raw_event2 = HistoricalEvent(
+    historical_event2 = HistoricalEvent(
                     year=1963,
                     title="Martin Luther King Jr. delivers his 'I Have a Dream' speech.",
                     page_name="During the March on Washington for Jobs and Freedom, Martin Luther King Jr. delivered his iconic speech...",
                     category="Civil Rights"
                 )
-    test_state: ChronoState = {
-        "target_date": "08/27",
-        "raw_events": [raw_event1, raw_event2],
-        "curated_story": None,
-        "final_article": None,
-        "published_path": None,
-        "filename": None,
-        "custom_event": None
-    }
+    test_state = ChronoState(
+        batched_events=EventList(events=[historical_event1, historical_event2]),
+    )
     try:
-        result = await rank_events_node(test_state)
-        return result
+        return await rank_events_node(test_state)
     except Exception as e:
         print(e)
         return {"curated_story": None}

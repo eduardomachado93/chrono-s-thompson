@@ -17,11 +17,12 @@ if ENV_FILE_PATH.exists():
 
 class Settings(BaseSettings):
     # LLM Settings
-    openai_api_key: SecretStr = Field(default=SecretStr(""), description="API key for OpenAI integration.")
+    openai_api_key: SecretStr = Field(description="API key for OpenAI integration.")
     model_name: str = Field(default="gpt-5.4-nano-2026-03-17", description="Default LLM model used by the LangGraph.")
     embedding_model_name: str = Field(default="text-embedding-3-large", description="Default embedding model for vector store operations.")
     image_model_name: str = Field(default="gpt-5.4-nano-2026-03-17", description="Default LLM model for image generation.")
     temperature: float = Field(default=0.8, description="Temperature for Gonzo-style article generation.")
+    batcher_temperature: float = Field(default=0.7, description="Temperature for Gonzo-style article generation.")
 
     # MCP Server Settings
     mcp_server_script: Path = Field(

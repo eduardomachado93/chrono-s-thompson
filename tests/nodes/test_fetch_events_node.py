@@ -10,18 +10,10 @@ from typing import Any, Dict
 
 @pytest.mark.asyncio
 async def test_fetch_events() -> Dict[str, Any]:
-    test_state: ChronoState = {
-        "target_date": "08/27",
-        "raw_events": [],
-        "detailed_event": None,
-        "curated_story": None,
-        "final_article": None,
-        "published_path": None,
-        "filename": None,
-        "custom_event": None
-    }
     try:
-        return await fetch_events_node(test_state)
+        test_state = ChronoState()
+        if test_state is not None:
+            return await fetch_events_node(test_state)
     except Exception as e:
         print(e)
         return {"raw_events": []}

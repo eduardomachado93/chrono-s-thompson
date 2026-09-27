@@ -2,7 +2,8 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 import streamlit as st
-from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, EventList
+from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent
+
 # Page configuration for Streamlit
 st.set_page_config(
     page_title="Chrono S. Thompson — Temporal Correspondent",
@@ -12,18 +13,7 @@ st.set_page_config(
 
 OUTPUT_DIR = Path("storage/output")
 
-state: ChronoState = {
-    "target_date": datetime.now().strftime("%m/%d"),
-    "raw_events": [],
-    "curated_story": None,
-    "final_article": None,
-    "published_path": None,
-    "custom_event": None,
-    "filename": None,
-    "retriever": None,
-    "batched_events": EventList(events=[]),
-    "detailed_event": None,
-}
+state: ChronoState
 
 def list_saved_dispatches():
     """Reads the output directory and returns a list of saved .md files sorted by modification time."""
@@ -34,7 +24,7 @@ def list_saved_dispatches():
 def fetch_events_for_date(target_date: str):
     """Auxiliary function to fetch historical events for a specific date."""
     from src.chrono_s_thompson.graph.nodes.fetcher import fetch_events_node
-    state["target_date"] = target_date
+    state.target_date = target_date
     return asyncio.run(fetch_events_node(state))
 
 async def run_pipeline():
@@ -47,7 +37,7 @@ async def run_pipeline():
 async def run_pipeline_with_custom_event(custom_event: HistoricalEvent):
     """Executes the full LangGraph pipeline for a given target date and a custom historical event."""
     from src.chrono_s_thompson.graph.builder import build_chrono_graph
-    state["custom_event"] = custom_event
+    state.custom_event = custom_event
     app = build_chrono_graph()
     return await app.ainvoke(state)
 
@@ -115,25 +105,28 @@ if generate_btn:
         st.write("🛰️ Querying historical events via MCP Server...")
         st.write("🧠 Curating story with maximum dramatic tension...")
         st.write("📰 Drafting dispatch in Gonzo style...")
-
-        try:
-            state["target_date"] = input_date
-            result = asyncio.run(run_pipeline())
-            status.update(label="Dispatch complete!", state="complete", expanded=False)
-            st.success(f"Article published to: `{result.get('published_path')}`")
-            
-            final_article = result.get("final_article", "")
-            render_article_with_translation(final_article, key_id="generated_random")
-        except Exception as e:
+        if input_date is None:
             status.update(label="Temporal coverage failure!", state="error")
-            st.error(f"Error running pipeline: {e}")
+            st.error(f"Input Date not Found")
+        else:
+            try:
+                state.target_date = input_date
+                result = asyncio.run(run_pipeline())
+                status.update(label="Dispatch complete!", state="complete", expanded=False)
+                st.success(f"Article published to: `{result.get('published_path')}`")
+
+                final_article = result.get("final_article", "")
+                render_article_with_translation(final_article, key_id="generated_random")
+            except Exception as e:
+                status.update(label="Temporal coverage failure!", state="error")
+                st.error(f"Error running pipeline: {e}")
 
 elif custom_event_btn:
     if type(input_date) != str or len(input_date.strip()) != 5 or input_date[2] != '/':
         st.error("Please provide a target date in MM/DD format before selecting an event.")
     else:
         fetch_result = fetch_events_for_date(input_date)
-        state["raw_events"] = fetch_result['raw_events']
+        state.raw_events = fetch_result['raw_events']
         st.write("🛰️ Available historical events:")
         for event in fetch_result['raw_events']:
             st.write(f"- {event['year']}: {event['title']}")

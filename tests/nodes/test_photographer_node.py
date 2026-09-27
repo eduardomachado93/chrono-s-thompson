@@ -19,23 +19,16 @@ async def test_take_photograph() -> Dict[str, Any]:
         ),
         gonzo_hook="Forget rulers and treaties: here the Earth lost its composure, exploded in screams, and showed that nature also knows how to make a power play — with right flames in the sky, killer waves, and a roar so obscene it became a global legend.",
     )
-    test_photographer_state: ChronoState = {
-        "target_date": "08/27",
-        "raw_events": [],
-        "detailed_event": None,
-        "curated_story": ranked_selection,
-        "final_article": None,
-        "published_path": None,
-        "filename": None,
-        "custom_event": None
-    }
+    test_photographer_state = ChronoState(
+        curated_story=ranked_selection
+    )
     try:
-        result = await take_photograph_node(test_photographer_state)
-        return result
+        return await take_photograph_node(test_photographer_state)
     except Exception as e:
         print(e)
-        return {"filename": None}
+        return {"photo_filename": None}
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(test_take_photograph())
+    result = asyncio.run(test_take_photograph())
+    print(f"Generated photo file: {result['photo_filename']}")

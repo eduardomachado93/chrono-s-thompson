@@ -17,7 +17,7 @@ async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
     This node is responsible for indexing and storing historical events in a structured format.
     It processes the raw events and prepares them for further analysis or retrieval.
     """
-    curated_story = state.get("curated_story")
+    curated_story = state.curated_story
     if curated_story:
         logger.info("[Node: index_selected_event] Indexing the curated story...")
         try:
@@ -31,5 +31,5 @@ async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
             retriever = get_retriever(docs=tuple(doc_splits))
             return {"detailed_event": event_details, "retriever": retriever}
         except MCPClientError as exc:
-            logger.error(f"[Node: index_selected_event] Error indexing the curated story: {exc}", exc_info=True)
-    return {"raw_events": []}
+            return {"error": True, "error_msg": f"[Node: index_selected_event] Error indexing the curated story: {exc}"}
+    return {"error": True, "error_msg": "Curated Story not found."}
