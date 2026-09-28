@@ -14,6 +14,8 @@ ENV_FILE_PATH = PROJECT_ROOT / ".env"
 # Loads environment variables from the .env file if it exists
 if ENV_FILE_PATH.exists():
     load_dotenv(dotenv_path=ENV_FILE_PATH)
+else:
+    raise FileNotFoundError(f"Error: .env file not found at {ENV_FILE_PATH}")
 
 class Settings(BaseSettings):
     # LLM Settings
