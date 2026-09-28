@@ -1,9 +1,13 @@
-#src.chrono_s_thompson.graph.nodes.indexer
+"""
+Node responsible for indexing Wikipedia context into an in-memory vector store in the Chrono S. Thompson LangGraph workflow.
+"""
 import logging
 from typing import Any, Dict
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from src.chrono_s_thompson.core.state import ChronoState
 from src.chrono_s_thompson.mcp_client.client import ChronoMCPClient, MCPClientError
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from src.chrono_s_thompson.core.vector_store import get_retriever
 from src.chrono_s_thompson.core.helpers import clean_text
 logger = logging.getLogger(__name__)
@@ -11,11 +15,13 @@ logger = logging.getLogger(__name__)
 mcp_client = ChronoMCPClient()
 
 async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
-    """
-    Indexer Node - Event Indexing and Storage.
+    """Node in the LangGraph responsible for indexing detailed Wikipedia context for the curated story.
 
-    This node is responsible for indexing and storing historical events in a structured format.
-    It processes the raw events and prepares them for further analysis or retrieval.
+    Args:
+        state: The current state of the pipeline containing `curated_story`.
+
+    Returns:
+        A dictionary with `detailed_event` and `retriever` to partially mutate ChronoState, or an error payload.
     """
     curated_story = state.curated_story
     if curated_story:

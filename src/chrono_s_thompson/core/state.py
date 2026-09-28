@@ -1,5 +1,10 @@
+"""
+This module defines the shared state structure for the Chrono S. Thompson LangGraph.
+It includes Pydantic models for data validation and state management across nodes.
+"""
 from datetime import datetime
 from typing import List, Optional
+
 from pydantic import BaseModel, Field, StrictBool, FilePath
 from langchain_core.vectorstores.base import VectorStoreRetriever
 

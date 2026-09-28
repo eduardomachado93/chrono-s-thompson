@@ -1,3 +1,7 @@
+"""
+Client for the local MCP Server in the Chrono S. Thompson LangGraph workflow.
+https://gofastmcp.com/getting-started/welcome
+"""
 import json
 import logging
 import os

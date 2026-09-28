@@ -1,3 +1,6 @@
+"""
+Main entry point for the Chrono S. Thompson application.
+"""
 import asyncio
 from datetime import datetime
 import logging

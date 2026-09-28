@@ -1,4 +1,3 @@
-#src/chrono_s_thompson/graph/nodes/fetcher.py
 """
 Node responsible for fetching historical facts from the MCP Server in the Chrono S. Thompson LangGraph workflow.
 """

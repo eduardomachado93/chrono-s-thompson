@@ -1,9 +1,14 @@
+"""
+Main UI application for the Chrono S. Thompson application.
+"""
 import asyncio
 import base64
 from datetime import datetime
 from pathlib import Path
 import re
+
 import streamlit as st
+
 from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent
 
 # Page configuration for Streamlit

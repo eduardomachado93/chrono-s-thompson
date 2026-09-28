@@ -1,4 +1,3 @@
-#tests.nodes.test_photographer_node.py
 """
 This is a test file for the take_photograph_node function in the photographer graph module. It sets up a test scenario with a sample ranked selection and a ChronoState, then calls the take_photograph_node function and prints the result or any exceptions that occur.
 """
@@ -18,6 +17,8 @@ async def test_take_photograph() -> Dict[str, Any]:
             category="General History"
         ),
         gonzo_hook="Forget rulers and treaties: here the Earth lost its composure, exploded in screams, and showed that nature also knows how to make a power play — with right flames in the sky, killer waves, and a roar so obscene it became a global legend.",
+        photo_description="A volcanic eruption spewing ash and lava into the sky, with a massive plume of smoke rising above the horizon.",
+        query_string="Volcanic eruption spewing ash and lava into the sky"
     )
     test_photographer_state = ChronoState(
         curated_story=ranked_selection

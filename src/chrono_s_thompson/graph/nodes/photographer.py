@@ -1,9 +1,13 @@
-from pydantic import FilePath
+"""
+Node responsible for generating visual illustrations for curated stories in the Chrono S. Thompson LangGraph workflow.
+"""
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-from datetime import datetime
+
 from openai import OpenAI
+from pydantic import FilePath
 
 from config import settings
 from src.chrono_s_thompson.core.state import ChronoState
@@ -16,6 +20,14 @@ client = OpenAI(
 )
 
 async def take_photograph_node(state: ChronoState) -> Dict[str, Any]: 
+    """Node in the LangGraph responsible for synthesizing an image based on the curated story.
+
+    Args:
+        state: The current state of the pipeline containing `curated_story`.
+
+    Returns:
+        A dictionary with `photo_file_path` and `photo_filename` to partially mutate ChronoState, or an error payload.
+    """
     curated_story = state.curated_story
     if not curated_story:
         return {"error": None, "error_msg": "[Node: photographer] No curated story available for the photo."}

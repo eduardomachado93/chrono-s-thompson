@@ -1,3 +1,6 @@
+"""
+Node responsible for generating and persisting Gonzo dispatches in the Chrono S. Thompson LangGraph workflow.
+"""
 from datetime import datetime
 import logging
 from pathlib import Path
@@ -26,6 +29,14 @@ Write the full article with your visceral style, weaving the historical reportag
 ])
 
 async def write_article_node(state: ChronoState) -> Dict[str, Any]:
+    """Node in the LangGraph responsible for writing the final Gonzo article using retrieved context and state payload.
+
+    Args:
+        state: The current state of the pipeline containing `curated_story`, `retriever`, `target_date`, `photo_filename`, and `photo_file_path`.
+
+    Returns:
+        A dictionary with `final_article`, `published_path`, and `photo_file_path` to partially mutate ChronoState, or an error payload.
+    """
     curated_story = state.curated_story
     retriever = state.retriever
     if not curated_story or retriever is None:

@@ -1,4 +1,3 @@
-#tests.nodes.test_fetch_events_node.py
 """
 This module contains tests for the fetch_events_node.py module. It sets up a test scenario with a sample ChronoState, then calls the fetch_events_node function
 """

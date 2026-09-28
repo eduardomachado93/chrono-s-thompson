@@ -1,6 +1,6 @@
-# src/chrono_s_thompson/core/translator.py
 """
-https://huggingface.co/docs/transformers/en/tasks/translation
+Responsible for translating articles to Portuguese using transformers for the Streamlit App.
+Reference: https://huggingface.co/docs/transformers/en/tasks/translation
 """
 import logging
 from functools import lru_cache
@@ -91,28 +91,3 @@ def translate_markdown_text(text: str, model_name: str = TRANSLATION_MODEL) -> s
             translated_paragraphs.append(paragraph)
 
     return "\n\n".join(translated_paragraphs)
-
-async def translate_article_node(state: ChronoState) -> Dict[str, Any]:
-    """
-    LangGraph node: Translates final_article using Hugging Face transformers pipeline if translate_to_pt is True.
-    """
-    should_translate = state.get("translate_to_pt", False)
-    final_article = state.get("final_article")
-
-    if not should_translate or not final_article:
-        logger.info("[Node: translate_article] Translation skipped (translate_to_pt=False or no final_article).")
-        return {"translated_article": None}
-
-    logger.info("[Node: translate_article] Translating final article to Portuguese via transformers pipeline...")
-    translated = translate_markdown_text(final_article)
-
-    published_path = state.get("published_path")
-    if published_path:
-        pt_path = Path(published_path).with_suffix(".pt.md")
-        try:
-            pt_path.write_text(translated, encoding="utf-8")
-            logger.info(f"[Node: translate_article] Translated article persisted at: {pt_path}")
-        except Exception as e:
-            logger.error(f"[Node: translate_article] Failed to save translated file: {e}")
-
-    return {"translated_article": translated}

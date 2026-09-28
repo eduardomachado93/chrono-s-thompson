@@ -1,4 +1,6 @@
-#src.chrono_s_thompson.graph.nodes.ranker
+"""
+Node responsible for editorial curation and ranking of historical events in the Chrono S. Thompson LangGraph workflow.
+"""
 import json
 import logging
 from typing import Any, Dict
@@ -27,15 +29,13 @@ Select the best story and return the structured curation.""")
 ])
 
 async def rank_events_node(state: ChronoState) -> Dict[str, Any]:
-    """Ranker Node - Editorial Curation and Ranking.
+    """Node in the LangGraph responsible for editorial curation and selecting the best story.
 
-    This node analyzes a batch of historical events and applies editorial judgment to select the most compelling one.
-    It uses an LLM to generate a 'gonzo hook' and suggest a modern parallel for contextualization.
     Args:
-        state: The current state object containing the 'batched_events' and 'target_date'.
+        state: The current state of the pipeline containing `batched_events` and optionally `custom_event`.
 
     Returns:
-        A dictionary with the key 'curated_story' populated with a RankedSelection instance.
+        A dictionary with the key `curated_story` populated with a RankedSelection instance, or an error payload.
     """
     if state.custom_event:
         evt_dict = state.custom_event.model_dump() if hasattr(state.custom_event, "model_dump") else state.custom_event

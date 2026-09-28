@@ -1,3 +1,6 @@
+"""
+This module provides helper functions for text cleaning and processing.
+"""
 import re
 from bs4 import BeautifulSoup
 

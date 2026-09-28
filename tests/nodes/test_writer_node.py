@@ -1,4 +1,3 @@
-#tests.nodes.test_writer_node.py
 """
 This module contains tests for the writer.py module. It sets up a test scenario with a sample ChronoState, then calls the write_article_node function and verifies the output or handles any exceptions.
 """

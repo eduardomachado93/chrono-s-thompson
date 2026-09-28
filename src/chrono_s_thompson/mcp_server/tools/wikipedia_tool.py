@@ -1,8 +1,12 @@
+"""
+Main Wikimedia and Wikipedia API fetching tools for the MCP Server.
+"""
 import logging
 from typing import Any, Dict, List
 import httpx
 
 from chrono_s_thompson.core.state import HistoricalEvent
+
 from config.settings import settings
 
 logger = logging.getLogger(__name__)

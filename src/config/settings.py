@@ -1,4 +1,3 @@
-#src.config.settings
 """
 Application settings for the Chrono S. Thompson historian agent.
 """
