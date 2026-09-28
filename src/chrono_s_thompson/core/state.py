@@ -3,7 +3,7 @@ This module defines the shared state structure for the Chrono S. Thompson LangGr
 It includes Pydantic models for data validation and state management across nodes.
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, StrictBool, FilePath
 from langchain_core.vectorstores.base import VectorStoreRetriever
@@ -37,6 +37,37 @@ class DetailedEvent(BaseModel):
     """Detailed information about a specific historical event."""
     title: str = Field(description="Title of the historical event.")
     source: str = Field(description="Source of the information about the event.")
+    page_name: str = Field(default="", description="Wikipedia page identifier.")
+    url: str = Field(default="", description="Canonical URL of the Wikipedia source.")
+
+class SourceMetadata(BaseModel):
+    """Metadata and snippet of a retrieved historical source."""
+    id: str = Field(description="Stable identifier for the source in this generation run, e.g. 'S1'.")
+    title: str = Field(description="Title of the source Wikipedia page.")
+    url: str = Field(description="Canonical URL of the source.")
+    page_name: str = Field(default="", description="Wikipedia page identifier.")
+    content: str = Field(default="", description="Excerpt or snippet of the source text.")
+
+class ClaimVerification(BaseModel):
+    """Fact verification status for a single historical assertion."""
+    claim: str = Field(description="Factual assertion extracted from article draft.")
+    status: Literal["supported", "unsupported", "contradicted"] = Field(
+        description="Verification status: 'supported', 'unsupported', or 'contradicted'."
+    )
+    source_id: Optional[str] = Field(default=None, description="Cited source ID supporting or contradicting the claim.")
+    evidence: Optional[str] = Field(default=None, description="Relevant excerpt from the source text as evidence.")
+
+class VerificationReport(BaseModel):
+    """Result of citation and factual verification review."""
+    is_valid: bool = Field(description="Whether the article passed citation and factual verification.")
+    cited_ids: List[str] = Field(default_factory=list, description="Citation IDs found in the article text.")
+    missing_citation_ids: List[str] = Field(default_factory=list, description="Cited IDs present in text but missing from available sources.")
+    claims: List[ClaimVerification] = Field(default_factory=list, description="Structured factual verification of claims.")
+    feedback: Optional[str] = Field(default=None, description="Detailed feedback explaining verification failures for revision.")
+    limitation_notice: str = Field(
+        default="Automated LLM fact-checking is a heuristic verification layer and does not guarantee absolute historical truth.",
+        description="Explicit disclaimer on automated verification limitations."
+    )
 
 class ChronoState(BaseModel):
     """Global shared state between all nodes in the LangGraph."""
@@ -60,9 +91,29 @@ class ChronoState(BaseModel):
         default=None,
         description="Selected event and editorial hook via Pydantic"
     )
+    draft_article: Optional[str] = Field(
+        default=None,
+        description="Draft article generated prior to verification and publishing"
+    )
+    sources: Dict[str, SourceMetadata] = Field(
+        default_factory=dict,
+        description="Mapping of stable source IDs to source metadata"
+    )
+    verification_result: Optional[VerificationReport] = Field(
+        default=None,
+        description="Result of citation and factual verification review"
+    )
+    verification_feedback: Optional[str] = Field(
+        default=None,
+        description="Feedback guidelines for article revision when verification fails"
+    )
+    revision_attempts: int = Field(
+        default=0,
+        description="Number of article revision attempts executed after verification failures"
+    )
     final_article: Optional[str] = Field(
         default=None,
-        description="Final article name"
+        description="Final article content after verification and publishing"
     )
     published_path: Optional[FilePath] = Field(
         default=None,
@@ -83,6 +134,14 @@ class ChronoState(BaseModel):
     retriever: Optional[VectorStoreRetriever] = Field(
         default=None,
         description="Vector store for semantic search and retrieval"
+    )
+    retrieved_docs: List[Any] = Field(
+        default_factory=list,
+        description="Documents retrieved from vector store search node"
+    )
+    reranked_docs: List[Any] = Field(
+        default_factory=list,
+        description="Validated and re-ranked context documents"
     )
     error: StrictBool = Field(
         default=False,

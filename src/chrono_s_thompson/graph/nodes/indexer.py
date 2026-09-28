@@ -4,6 +4,7 @@ Node responsible for indexing Wikipedia context into an in-memory vector store i
 import logging
 from typing import Any, Dict
 
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.chrono_s_thompson.core.state import ChronoState
@@ -27,14 +28,32 @@ async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
     if curated_story:
         logger.info("[Node: index_selected_event] Indexing the curated story...")
         try:
-            event_details = await mcp_client.get_historical_event_details(curated_story.selected_event.page_name)
+            page_name = curated_story.selected_event.page_name
+            event_details = await mcp_client.get_historical_event_details(page_name)
+
+            title = event_details.get("title") or curated_story.selected_event.title
+            url = event_details.get("url") or f"https://en.wikipedia.org/wiki/{page_name}"
+
             text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
                 chunk_size=400,
                 chunk_overlap=50,
             )
             event_source = clean_text(event_details.get("source", ""))
             doc_splits = text_splitter.split_text(event_source)
-            retriever = get_retriever(docs=tuple(doc_splits))
+
+            documents = [
+                Document(
+                    page_content=chunk,
+                    metadata={
+                        "title": title,
+                        "url": url,
+                        "page_name": page_name,
+                    }
+                )
+                for chunk in doc_splits
+            ]
+
+            retriever = get_retriever(docs=documents)
             return {"detailed_event": event_details, "retriever": retriever}
         except MCPClientError as exc:
             return {"error": True, "error_msg": f"[Node: index_selected_event] Error indexing the curated story: {exc}"}

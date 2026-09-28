@@ -49,10 +49,10 @@ async def test_write_article_success():
     with patch.object(RunnableSequence, "ainvoke", AsyncMock(return_value=mock_ai_msg)):
         result = await write_article_node(test_state)
 
-        assert "final_article" in result
-        assert "published_path" in result
-        assert "GONZO REPORT: KRAKATOA APOCALYPSE" in result["final_article"]
-        assert result["published_path"].exists()
+        assert "draft_article" in result
+        assert "sources" in result
+        assert "GONZO REPORT: KRAKATOA APOCALYPSE" in result["draft_article"]
+        assert "S1" in result["sources"]
 
 
 @pytest.mark.asyncio

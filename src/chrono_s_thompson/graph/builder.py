@@ -21,10 +21,18 @@ def build_chrono_graph():
             return next_node
         return route
 
+    # 2. Decision routing helper after fact-checking and citation verification
+    def route_after_verification(state: ChronoState) -> str:
+        if state.error:
+            return END
+        if state.verification_result and not state.verification_result.is_valid:
+            return "write_article"
+        return "publish_article"
+
     # Initialize the state graph with the shared ChronoState schema
     workflow = StateGraph(ChronoState)
 
-    # 2. Node registration with retry and timeout policies
+    # 3. Node registration with retry and timeout policies
     workflow.add_node(
         "fetch_events", 
         fetch_events_node,
@@ -56,22 +64,49 @@ def build_chrono_graph():
         timeout=TimeoutPolicy(run_timeout=60)
     )
     workflow.add_node(
+        "search_context",
+        search_context_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "rerank_context",
+        rerank_context_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
         "write_article", 
         write_article_node,
         retry_policy=RetryPolicy(max_attempts=2),
         timeout=TimeoutPolicy(run_timeout=60)
     )
+    workflow.add_node(
+        "verify_article",
+        verify_article_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "publish_article",
+        publish_article_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
 
-    # 3. Entry point: start execution at the fetch_events node
+    # 4. Entry point: start execution at the fetch_events node
     workflow.add_edge(START, "fetch_events")
 
-    # 4. Sequential pipeline definitions with conditional error checks between nodes
+    # 5. Sequential pipeline definitions with conditional error checks between nodes
     pipeline = [
         ("fetch_events", "batch_events"),
         ("batch_events", "rank_events"),
         ("rank_events", "photographer"),
         ("photographer", "index_selected_event"),
-        ("index_selected_event", "write_article"),
+        ("index_selected_event", "search_context"),
+        ("search_context", "rerank_context"),
+        ("rerank_context", "write_article"),
+        ("write_article", "verify_article"),
     ]
 
     for current_node, next_node in pipeline:
@@ -84,7 +119,24 @@ def build_chrono_graph():
             }
         )
 
-    # 5. Final transition: route completed article generation to the graph END
-    workflow.add_edge("write_article", END)
+    # 6. Verification conditional transitions: retry draft or publish
+    workflow.add_conditional_edges(
+        "verify_article",
+        route_after_verification,
+        {
+            "write_article": "write_article",
+            "publish_article": "publish_article",
+            END: END
+        }
+    )
+
+    # 7. Final transition: route published article to END
+    workflow.add_conditional_edges(
+        "publish_article",
+        check_error_and_route(END),
+        {
+            END: END
+        }
+    )
 
     return workflow.compile()

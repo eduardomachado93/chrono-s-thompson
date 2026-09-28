@@ -88,4 +88,14 @@ async def fetch_event_details(page_name: str) -> Dict[str, Any]:
             logger.error(f"HTTP request failed for the Wikimedia API: {exc}")
             return {"error": str(exc)}
 
-    return data
+    title = data.get("title", page_name)
+    url = f"https://en.wikipedia.org/wiki/{page_name}"
+    source = data.get("source") or data.get("extract") or data.get("description") or ""
+
+    return {
+        "title": title,
+        "page_name": page_name,
+        "url": url,
+        "source": source,
+        "raw_response": data
+    }

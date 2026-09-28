@@ -12,10 +12,14 @@
 2. **Filters & Batches events** using LLM structured outputs (Pydantic).
 3. **Curates & Ranks stories** based on dramatic tension, paradox, and human agency, generating chaotic editorial Gonzo hooks.
 4. **Generates historical illustrations** via AI image generation (OpenAI).
-5. **Indexes deep context into RAG** by scraping full Wikipedia content and embedding into a vector store retriever.
-6. **Drafts high-engagement Gonzo prose** in the authentic, visceral voice of Gonzo journalism (Hunter S. Thompson inspired).
-7. **Translates dispatches on-demand** using an offline Hugging Face Transformers pipeline (`Helsinki-NLP/opus-mt-tc-big-en-pt`).
-8. **Interactive UI**: Persists, archives, and displays dispatches through a sleek **Streamlit** control panel.
+5. **Indexes deep context into RAG** scraping Wikipedia content, stripping wikitext clutter, and preserving Wikipedia source metadata (`title`, `url`, `page_name`) across text chunks in an in-memory retriever.
+6. **Searches vector store context** querying the vector database for relevant historical context chunks.
+7. **Validates & re-ranks context** removing duplicate passages, scoring keyword relevance against the event and hook, and assigning stable source IDs (`[S1]`, `[S2]`).
+8. **Drafts high-engagement Gonzo prose** attaching stable source IDs (`[S1]`, `[S2]`), inline citations, and a mandatory `### Fontes` section with collapsible `<details><summary>` blocks displaying canonical URLs and cited excerpts.
+9. **Verifies and fact-checks dispatches** in a dedicated verifier node checking citation IDs deterministically and auditing claims via LLM structured outputs (`VerificationReport`), with an automated revision loop.
+10. **Publishes verified dispatches** persisting approved Markdown dispatches to `storage/output/`.
+11. **Translates dispatches on-demand** using an offline Hugging Face Transformers pipeline (`Helsinki-NLP/opus-mt-tc-big-en-pt`).
+12. **Interactive UI**: Persists, archives, and displays dispatches through a sleek **Streamlit** control panel.
 
 ---
 
@@ -34,8 +38,14 @@ graph TD
     C -->|Pydantic EventList| D[🏆 rank_events node]
     D -->|RankedSelection & Hook| E[🎨 photographer node]
     E -->|Generated Image saved| F[📚 index_selected_event RAG node]
-    F -->|VectorStoreRetriever| G[✍️ write_article node]
-    G -->|Gonzo Dispatch .md| H[🏁 END: Persisted in storage/output]
+    F -->|VectorStoreRetriever & Docs| G[🔎 search_context node]
+    G -->|retrieved_docs| H[📊 rerank_context node]
+    H -->|reranked_docs & sources| I[✍️ write_article node]
+    I -->|draft_article & sources| J[🔍 verify_article node]
+    J -->|Invalid & attempts < 2| I
+    J -->|Valid VerificationReport| K[💾 publish_article node]
+    J -->|Invalid & attempts >= 2| L[🛑 END: Error Halting]
+    K -->|Gonzo Dispatch .md| M[🏁 END: Persisted in storage/output]
 ```
 
 ### LangGraph Stateful Pipeline Nodes
@@ -43,9 +53,13 @@ graph TD
 1. **Data Fetcher Node (`fetch_events`)**: Interacts with the local FastMCP server via `stdio` (`get_historical_events`).
 2. **Event Batcher Node (`batch_events`)**: Cleans and filters historical facts into structured Pydantic `EventList` models.
 3. **Curator & Ranker Node (`rank_events`)**: Evaluates narrative friction and selects the main event with a Gonzo editorial angle (`RankedSelection`).
-4. **Photographer Node (`photographer`)**: Craft visual prompts and calls OpenAI to generate period-appropriate illustrations saved to `storage/images/`.
-5. **RAG Indexer Node (`index_selected_event`)**: Fetches in-depth Wikipedia text, splits into chunks, and builds an in-memory RAG retriever vector store.
-6. **Gonzo Journalist Node (`write_article`)**: Synthesizes the RAG context, Gonzo hook, and photograph into a Markdown dispatch saved to `storage/output/`.
+4. **Photographer Node (`photographer`)**: Crafts visual prompts and calls OpenAI to generate period-appropriate illustrations saved to `storage/images/`.
+5. **RAG Indexer Node (`index_selected_event`)**: Fetches Wikipedia text, strips wikitext clutter, attaches source metadata (`title`, `url`, `page_name`) to `Document` chunks, and builds an in-memory RAG retriever vector store.
+6. **Context Searcher Node (`search_context`)**: Queries the vector store retriever with the curated query string to fetch relevant historical passages.
+7. **Context Reranker Node (`rerank_context`)**: Validates, deduplicates, ranks retrieved text chunks by relevance, and creates stable source mappings (`S1`, `S2`, ...).
+8. **Gonzo Journalist Node (`write_article`)**: Synthesizes the reranked context, assigns stable source IDs (`[S1]`, `[S2]`), and drafts the article with inline citations and a collapsible `### Fontes` section.
+9. **Fact Verifier Node (`verify_article`)**: Audits citation IDs deterministically, verifies factual claims against source evidence (`VerificationReport`), and manages the revision feedback loop. *Note: Automated LLM verification is a heuristic check and does not guarantee absolute historical truth.*
+10. **Publisher Node (`publish_article`)**: Persists verified dispatches to `storage/output/{filename}.md`.
 
 ---
 
@@ -133,7 +147,7 @@ LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 ```
 
 Once configured, any run of the application (via Streamlit or terminal CLI) will automatically stream execution traces to your [LangSmith Dashboard](https://smith.langchain.com), allowing you to:
-* Inspect exact inputs, state mutations, and outputs for every pipeline node (`fetcher`, `batcher`, `ranker`, `photographer`, `indexer`, `writer`).
+* Inspect exact inputs, state mutations, and outputs for every pipeline node (`fetcher`, `batcher`, `ranker`, `photographer`, `indexer`, `searcher`, `reranker`, `writer`).
 * Audit structured Pydantic outputs (`EventList`, `RankedSelection`) generated by each LLM step.
 * Debug prompt templates, token usage, latency, and model calls across graph executions step-by-step.
 
@@ -167,7 +181,7 @@ chrono-s-thompson/
 │   └── chrono_s_thompson/
 │       ├── core/               # State schemas (ChronoState) & Translation utilities
 │       ├── graph/              # LangGraph workflow builder, nodes & prompts
-│       │   ├── nodes/          # fetcher, batcher, ranker, photographer, indexer, writer
+│       │   ├── nodes/          # fetcher, batcher, ranker, photographer, indexer, searcher, reranker, writer
 │       │   └── prompts/        # System prompts & Gonzo style directives
 │       ├── mcp_client/         # Client interface for MCP stdio transport
 │       └── mcp_server/         # FastMCP historical data server & Wikipedia tools

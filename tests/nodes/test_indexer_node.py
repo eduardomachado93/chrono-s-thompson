@@ -38,9 +38,14 @@ async def test_index_selected_event_success():
     }
 
     def fake_get_retriever(docs):
-        vs = InMemoryVectorStore.from_texts(
-            texts=list(docs), embedding=FakeEmbeddings(size=1536)
-        )
+        if docs and hasattr(docs[0], "page_content"):
+            vs = InMemoryVectorStore.from_documents(
+                documents=list(docs), embedding=FakeEmbeddings(size=1536)
+            )
+        else:
+            vs = InMemoryVectorStore.from_texts(
+                texts=list(docs), embedding=FakeEmbeddings(size=1536)
+            )
         return vs.as_retriever()
 
     with patch(
@@ -59,10 +64,11 @@ async def test_index_selected_event_success():
             assert result["detailed_event"]["title"] == "1883 eruption of Krakatoa"
             assert result["retriever"] is not None
 
-            # Verify retriever functionality
+            # Verify retriever functionality and metadata
             retrieved_docs = result["retriever"].invoke("Krakatoa")
             assert len(retrieved_docs) > 0
             assert "Krakatoa" in retrieved_docs[0].page_content
+            assert retrieved_docs[0].metadata["page_name"] == "1883_eruption_of_Krakatoa"
 
 
 @pytest.mark.asyncio
