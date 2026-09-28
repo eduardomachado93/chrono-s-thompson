@@ -109,6 +109,16 @@ Features included in the web dashboard:
 * **Newsroom Archives**: Read all previously generated dispatches.
 * **Offline Translation**: One-click translation of dispatches to Portuguese using Hugging Face Transformers.
 
+### >_ Running on terminal
+
+* This will run the application on terminal. You cannot choose a date or a custom event.
+* The target date is hardcoded to today's date
+
+```bash
+uv run python -m src.main
+```
+
+
 ### 🔌 Running the MCP Server Inspector
 
 To inspect and test the FastMCP historical server using standard MCP tools:

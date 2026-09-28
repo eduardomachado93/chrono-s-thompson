@@ -1,33 +1,30 @@
 # src/chrono_s_thompson/core/translator.py
 """
-Hugging Face Transformers Translation implementation for Chrono S. Thompson.
-Follows the official Hugging Face Translation task specification:
 https://huggingface.co/docs/transformers/en/tasks/translation
 """
 import logging
-import ssl
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
-
+from typing import Any, Dict
+from huggingface_hub import login
+from config.settings import settings
 from src.chrono_s_thompson.core.state import ChronoState
 
 logger = logging.getLogger(__name__)
 
-# Valid official English -> Portuguese model on Hugging Face Hub
-DEFAULT_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-tc-big-en-pt"
+TRANSLATION_MODEL = settings.hf_translate_model
+HF_TOKEN = settings.hf_token.get_secret_value()
 
 @lru_cache(maxsize=1)
-def get_translator_components(model_name: str = DEFAULT_TRANSLATION_MODEL):
+def get_translator_components(model_name: str = TRANSLATION_MODEL, hf_token: str = HF_TOKEN):
     """
     Lazy loads and caches the Hugging Face AutoTokenizer and AutoModelForSeq2SeqLM
     following the official Hugging Face Translation task documentation:
     https://huggingface.co/docs/transformers/en/tasks/translation
     """
     try:
-        # Disable SSL verification if Windows SSL bundle is missing/custom enterprise proxy
         try:
-            ssl._create_default_https_context = ssl._create_unverified_context
+            login(hf_token)
         except Exception:
             pass
 
@@ -43,7 +40,7 @@ def get_translator_components(model_name: str = DEFAULT_TRANSLATION_MODEL):
         logger.error(f"[Translator] Failed to load transformers model/tokenizer: {exc}", exc_info=True)
         return None, None
 
-def translate_markdown_text(text: str, model_name: str = DEFAULT_TRANSLATION_MODEL) -> str:
+def translate_markdown_text(text: str, model_name: str = TRANSLATION_MODEL) -> str:
     """
     Translates Markdown text paragraph by paragraph using Hugging Face AutoModelForSeq2SeqLM.
     Preserves images, headers, horizontal rules, code blocks, and metadata signatures.

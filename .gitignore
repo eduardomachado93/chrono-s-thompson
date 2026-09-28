@@ -5,8 +5,9 @@ logs/
 *.log
 *.tmp
 .vscode
-storage/output/
-notebooks/storage/output/
+storage/output/*.md
+storage/images/*.png
+storage/images/*.jpg
 .idea/
 pytest_report.txt
 .pytest_cache/

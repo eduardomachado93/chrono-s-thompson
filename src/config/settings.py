@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     temperature: float = Field(default=0.8, description="Temperature for Gonzo-style article generation.")
     batcher_temperature: float = Field(default=0.7, description="Temperature for Gonzo-style article generation.")
 
+    # HugginFace
+    hf_token: SecretStr = Field(description="Token for HuggingFace integration.")
+    hf_translate_model: str = Field(default="Helsinki-NLP/opus-mt-tc-big-en-pt", description="HuggingFace translation model for pt-BR translation.")
+    
     # MCP Server Settings
     mcp_server_script: Path = Field(
         default=Path("src/chrono_s_thompson/mcp_server/server.py"), 
@@ -33,7 +37,8 @@ class Settings(BaseSettings):
 
     # Storage & Paths
     project_root: Path = Field(default=PROJECT_ROOT, description="Absolute root path of the project.")
-    output_dir: Path = Field(default=Path("storage/output"), description="Directory where articles are saved.")
+    articles_dir: Path = Field(default=Path("storage/output"), description="Directory where articles are saved.")
+    images_dir: Path = Field(default=Path("storage/images"), description="Directory where generated images are saved.")
     log_level: str = Field(default="INFO", description="Logging level for the application.")
 
     # Project Meta

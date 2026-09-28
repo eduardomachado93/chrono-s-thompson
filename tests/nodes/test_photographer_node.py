@@ -26,9 +26,9 @@ async def test_take_photograph() -> Dict[str, Any]:
         return await take_photograph_node(test_photographer_state)
     except Exception as e:
         print(e)
-        return {"photo_filename": None}
+        return {"photo_file_path": None}
 
 if __name__ == "__main__":
     import asyncio
     result = asyncio.run(test_take_photograph())
-    print(f"Generated photo file: {result['photo_filename']}")
+    print(f"Generated photo file: {result['photo_file_path']}")

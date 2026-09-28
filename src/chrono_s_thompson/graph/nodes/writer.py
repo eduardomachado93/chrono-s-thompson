@@ -32,9 +32,9 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
         return {"error": True, "error_msg": "Error on getting the required states."}
 
     event = curated_story.selected_event
-    hook = curated_story.gonzo_hook
+    query = curated_story.query_string
     target_date = state.target_date
-    docs = await retriever.ainvoke(hook, **{"k": 6})
+    docs = await retriever.ainvoke(query, **{"k": 12})
     context = "\n\n".join([d.page_content for d in docs]) if docs else "No specific archival documents found."
 
     llm = ChatOpenAI(
@@ -51,13 +51,14 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
             "target_date": target_date,
             "year": event.year,
             "title": event.title,
-            "hook": hook,
-            "context": context
+            "hook": curated_story.gonzo_hook,
+            "context": context,
+            "image_filename": state.photo_filename
         })
 
         article_content = response.content
 
-        output_dir: Path = Path(settings.output_dir)
+        output_dir: Path = Path(settings.articles_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         now_str = datetime.now().strftime("%Y-%m-%d")
@@ -70,7 +71,8 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
 
         return {
             "final_article": article_content,
-            "published_path": FilePath(file_path)
+            "published_path": FilePath(file_path),
+            "photo_file_path": state.photo_file_path
         }
 
     except Exception as exc:

@@ -23,8 +23,8 @@ async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
         try:
             event_details = await mcp_client.get_historical_event_details(curated_story.selected_event.page_name)
             text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-                chunk_size=750,
-                chunk_overlap=150,
+                chunk_size=400,
+                chunk_overlap=50,
             )
             event_source = clean_text(event_details.get("source", ""))
             doc_splits = text_splitter.split_text(event_source)

@@ -30,6 +30,19 @@ async def test_rank_events() -> Dict[str, Any]:
         print(e)
         return {"curated_story": None}
 
+@pytest.mark.asyncio
+async def test_rank_events_custom_event() -> Dict[str, Any]:
+    custom_evt = HistoricalEvent(
+        year=1998,
+        title="Google is founded by Larry Page and Sergey Brin.",
+        page_name="Google",
+        category="Technology"
+    )
+    test_state = ChronoState(custom_event=custom_evt)
+    result = await rank_events_node(test_state)
+    assert "curated_story" in result
+    return result
+
 if __name__ == "__main__":
     import asyncio
     result = asyncio.run(test_rank_events())

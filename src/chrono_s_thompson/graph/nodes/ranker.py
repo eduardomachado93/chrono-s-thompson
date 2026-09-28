@@ -38,7 +38,8 @@ async def rank_events_node(state: ChronoState) -> Dict[str, Any]:
         A dictionary with the key 'curated_story' populated with a RankedSelection instance.
     """
     if state.custom_event:
-        payload_str = json.dumps([state.custom_event], ensure_ascii=False, indent=2)  # Serialize the custom event as JSON
+        evt_dict = state.custom_event.model_dump() if hasattr(state.custom_event, "model_dump") else state.custom_event
+        payload_str = json.dumps([evt_dict], ensure_ascii=False, indent=2)  # Serialize the custom event as JSON
     else:
         batched_events = state.batched_events
         events_list = batched_events.events if hasattr(batched_events, "events") else (batched_events if isinstance(batched_events, list) else [])
