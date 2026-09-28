@@ -29,13 +29,14 @@ async def main():
 
     initial_state = ChronoState()
     result = await app.ainvoke(initial_state)
-
-    print("\n" + "=" * 60)
-    print("📰  GONZO DISPATCH PUBLISHED SUCCESSFULLY!")
-    print("=" * 60)
-    print(f"📁 File saved to: {result.get('published_path')}\n")
-    print(result.get("final_article"))
-
+    if not result.get("error"):
+        print("\n" + "=" * 60)
+        print("📰  GONZO DISPATCH PUBLISHED SUCCESSFULLY!")
+        print("=" * 60)
+        print(f"📁 File saved to: {result.get('published_path')}\n")
+    else:
+        print("\n" + "=" * 60)
+        print(result.get("error_msg"))
 
 if __name__ == "__main__":
     asyncio.run(main())

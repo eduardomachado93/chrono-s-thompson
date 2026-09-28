@@ -6,6 +6,7 @@ import logging
 from typing import Any, Dict
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+
 from config.settings import settings
 from src.chrono_s_thompson.core.state import ChronoState, EventList, HistoricalEvent
 from src.chrono_s_thompson.graph.prompts.gonzo_prompts import SHORTLIST_PROMPT
@@ -32,11 +33,11 @@ def get_event_key(e: Any) -> tuple[int, str]:
 async def batch_events_node(state: ChronoState) -> Dict[str, Any]:
     raw_events = state.raw_events # Retrieve raw events from the state
     if not raw_events:
-        return {"error": True, "error_msg": "[Node: rank_events] No events available for ranking."}
+        return {"error": True, "error_msg": "[Node: batch_events] No events available for ranking."}
     if state.custom_event:
         return {"batched_events": EventList(events=[state.custom_event])}
     else:
-        logger.info(f"[Node: rank_events] Evaluating {len(raw_events)} historical events for curation...")
+        logger.info(f"[Node: batch_events] Evaluating {len(raw_events)} historical events for curation...")
         try:
             if len(raw_events) <= 10:
                 candidates = [
@@ -54,16 +55,10 @@ async def batch_events_node(state: ChronoState) -> Dict[str, Any]:
                     candidates = [e for e in raw_events if get_event_key(e) in selected_keys]
                 else:
                     candidates = raw_events[:10]
-                logger.info(f"[Node: rank_events] Selected {len(candidates)} historical events for curation...")
-                logger.info(candidates)
+                logger.info(f"[Node: batch_events] Selected {len(candidates)} historical events for curation...")
             return {"batched_events": EventList(events=candidates)}  # Return the best ranked candidates
         except Exception as exc:
-            logger.error(f"[Node: rank_events] Failure to process structured output from the ranker: {exc}", exc_info=True) # Log any exceptions that occur during processing
-            fallback_events = [
-                e if isinstance(e, HistoricalEvent) else HistoricalEvent.model_validate(e)
-                for e in raw_events[:10]
-            ]
-            return {"batched_events": EventList(events=fallback_events)}  # Return the first 10 events in case of error
+            return {"error": True, "error_msg": f"[Node: batch_events] Error in batching historical events: {exc}"}
 
 def chunk_list(items: list[Any], size: int) -> Iterator[EventList]:
     for i in range(0, len(items), size):
@@ -78,7 +73,7 @@ async def filter_batch(batch: EventList) -> EventList:
     result = await chain.ainvoke({"events_batch": str_batch_formated})
     #Validate the Model output
     if not isinstance(result, EventList):
-        logger.warning("[Node: rank_events] Invalid structured output from the ranker.")
+        logger.warning("[Node: batch_events] Invalid structured output from the ranker.")
         return EventList(events=[])
     # Return structured HistoricalEvent list
-    return result
+    return result   

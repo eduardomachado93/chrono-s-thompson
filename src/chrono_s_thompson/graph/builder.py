@@ -1,6 +1,8 @@
+#src/chrono_s_thompson/graph/builder.py
 """
 This module defines the workflow for the Chrono S. Thompson application using LangGraph's StateGraph.
-It sets up the nodes and edges that represent the sequence of operations in the application, including fetching
+It sets up the nodes, retry/timeout policies, and conditional transitions that represent the end-to-end
+sequence of operations, handling error routing gracefully across all steps.
 """
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import RetryPolicy, TimeoutPolicy
@@ -8,10 +10,11 @@ from langgraph.types import RetryPolicy, TimeoutPolicy
 from src.chrono_s_thompson.core.state import ChronoState
 from src.chrono_s_thompson.graph.nodes import *
 
-def build_chrono_graph():
-    """Builds the LangGraph workflow for the Chrono S. Thompson application."""
 
-    # 1. Função pura de decisão: lê o state e decide o próximo passo
+def build_chrono_graph():
+    """Builds and compiles the LangGraph workflow for the Chrono S. Thompson pipeline."""
+
+    # 1. Pure decision routing helper: inspects state and halts on errors
     def check_error_and_route(next_node: str):
         def route(state: ChronoState) -> str:
             if state.error:
@@ -19,20 +22,51 @@ def build_chrono_graph():
             return next_node
         return route
 
+    # Initialize the state graph with the shared ChronoState schema
     workflow = StateGraph(ChronoState)
 
-    # 2. Registro dos nós
-    workflow.add_node("fetch_events", fetch_events_node)
-    workflow.add_node("batch_events", batch_events_node)
-    workflow.add_node("rank_events", rank_events_node)
-    workflow.add_node("photographer", take_photograph_node)
-    workflow.add_node("index_selected_event", index_selected_event)
-    workflow.add_node("write_article", write_article_node)
+    # 2. Node registration with retry and timeout policies
+    workflow.add_node(
+        "fetch_events", 
+        fetch_events_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "batch_events", 
+        batch_events_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "rank_events", 
+        rank_events_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "photographer", 
+        take_photograph_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=120)
+    )
+    workflow.add_node(
+        "index_selected_event", 
+        index_selected_event,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
+    workflow.add_node(
+        "write_article", 
+        write_article_node,
+        retry_policy=RetryPolicy(max_attempts=2),
+        timeout=TimeoutPolicy(run_timeout=60)
+    )
 
-    # 3. Início
+    # 3. Entry point: start execution at the fetch_events node
     workflow.add_edge(START, "fetch_events")
 
-    # 4. Transições condicionais validando o State após cada nó
+    # 4. Sequential pipeline definitions with conditional error checks between nodes
     pipeline = [
         ("fetch_events", "batch_events"),
         ("batch_events", "rank_events"),
@@ -51,7 +85,7 @@ def build_chrono_graph():
             }
         )
 
-    # Último nó vai para END (ou também pode passar por validação se necessário)
+    # 5. Final transition: route completed article generation to the graph END
     workflow.add_edge("write_article", END)
 
     return workflow.compile()
