@@ -1,52 +1,84 @@
 """
-This module contains tests for the rank_events_node.py module. It sets up a test scenario with a sample ChronoState, then calls the rank_events_node function and prints the result or any exceptions that occur.
+Tests for rank_events_node graph module.
 """
+from unittest.mock import AsyncMock, patch
+
 import pytest
+from langchain_core.runnables import RunnableSequence
 
+from src.chrono_s_thompson.core.state import (
+    ChronoState,
+    EventList,
+    HistoricalEvent,
+    RankedSelection,
+)
 from src.chrono_s_thompson.graph.nodes.ranker import rank_events_node
-from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent, EventList
-from typing import Any, Dict
+
 
 @pytest.mark.asyncio
-async def test_rank_events() -> Dict[str, Any]:
-    historical_event1 = HistoricalEvent(
-                    year=1883,
-                    title="Eruption of Krakatoa reaches its violent climax.",
-                    page_name="The catastrophic volcanic explosion generated the loudest sound in recorded history...",
-                    category="General History"
-                )
-    historical_event2 = HistoricalEvent(
-                    year=1963,
-                    title="Martin Luther King Jr. delivers his 'I Have a Dream' speech.",
-                    page_name="During the March on Washington for Jobs and Freedom, Martin Luther King Jr. delivered his iconic speech...",
-                    category="Civil Rights"
-                )
-    test_state = ChronoState(
-        batched_events=EventList(events=[historical_event1, historical_event2]),
+async def test_rank_events_success():
+    """Verify rank_events_node returns RankedSelection on valid LLM curation."""
+    event1 = HistoricalEvent(
+        year=1883,
+        title="Eruption of Krakatoa",
+        page_name="1883_eruption_of_Krakatoa",
+        category="General History",
     )
-    try:
-        return await rank_events_node(test_state)
-    except Exception as e:
-        print(e)
-        return {"curated_story": None}
+    event2 = HistoricalEvent(
+        year=1963,
+        title="I Have a Dream Speech",
+        page_name="I_Have_a_Dream",
+        category="Civil Rights",
+    )
+    test_state = ChronoState(batched_events=EventList(events=[event1, event2]))
+
+    mock_ranked = RankedSelection(
+        selected_event=event1,
+        gonzo_hook="The Earth exploded in violent screams.",
+        photo_description="Volcanic eruption plume.",
+        query_string="Krakatoa 1883 eruption details",
+    )
+
+    with patch.object(RunnableSequence, "ainvoke", AsyncMock(return_value=mock_ranked)):
+        result = await rank_events_node(test_state)
+
+        assert "curated_story" in result
+        assert isinstance(result["curated_story"], RankedSelection)
+        assert result["curated_story"].selected_event.year == 1883
+        assert result["curated_story"].photo_description == "Volcanic eruption plume."
+        assert result["curated_story"].query_string == "Krakatoa 1883 eruption details"
+
 
 @pytest.mark.asyncio
-async def test_rank_events_custom_event() -> Dict[str, Any]:
+async def test_rank_events_custom_event():
+    """Verify rank_events_node ranks custom_event when provided in ChronoState."""
     custom_evt = HistoricalEvent(
         year=1998,
-        title="Google is founded by Larry Page and Sergey Brin.",
+        title="Google is founded",
         page_name="Google",
-        category="Technology"
+        category="Technology",
     )
     test_state = ChronoState(custom_event=custom_evt)
-    result = await rank_events_node(test_state)
-    assert "curated_story" in result
-    return result
 
-if __name__ == "__main__":
-    import asyncio
-    result = asyncio.run(test_rank_events())
-    if result and "curated_story" in result and result["curated_story"]:
-        print(f"Ranked Event: {result['curated_story'].selected_event.title}")
-    else:
-        print("No ranked event found.")
+    mock_ranked = RankedSelection(
+        selected_event=custom_evt,
+        gonzo_hook="Two garage grads index the human mind.",
+        photo_description="Vintage computer server in garage.",
+        query_string="Google founding 1998 Page Brin",
+    )
+
+    with patch.object(RunnableSequence, "ainvoke", AsyncMock(return_value=mock_ranked)):
+        result = await rank_events_node(test_state)
+
+        assert "curated_story" in result
+        assert result["curated_story"].selected_event.title == "Google is founded"
+
+
+@pytest.mark.asyncio
+async def test_rank_events_empty_batched_events():
+    """Verify rank_events_node returns error payload when no events are available for ranking."""
+    test_state = ChronoState(batched_events=EventList(events=[]))
+    result = await rank_events_node(test_state)
+
+    assert result.get("error") is True
+    assert "No events available for ranking" in result.get("error_msg", "")

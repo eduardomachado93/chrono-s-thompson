@@ -161,7 +161,7 @@ def render_article_with_translation(content: str, key_id: str = "article"):
     col_space, col_btn = st.columns([0.7, 0.3])
     with col_btn:
         if st.button("🌐 Traduzir para PT (Transformers)", key=f"btn_translate_{key_id}"):
-            with st.spinner("Traduzindo artigo via Hugging Face transformers pipeline (Helsinki-NLP/opus-mt-en-pt)..."):
+            with st.spinner("Traduzindo artigo via Hugging Face transformers pipeline (Helsinki-NLP/opus-mt-tc-big-en-pt)..."):
                 from src.chrono_s_thompson.core.translator import translate_markdown_text
                 st.session_state[f"trans_cache_{key_id}"] = translate_markdown_text(content)
 

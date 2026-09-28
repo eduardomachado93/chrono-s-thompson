@@ -1,35 +1,85 @@
 """
-This is a test file for the take_photograph_node function in the photographer graph module. It sets up a test scenario with a sample ranked selection and a ChronoState, then calls the take_photograph_node function and prints the result or any exceptions that occur.
+Tests for take_photograph_node graph module.
 """
+import base64
+from unittest.mock import MagicMock, patch
+
 import pytest
 
+from src.chrono_s_thompson.core.state import (
+    ChronoState,
+    HistoricalEvent,
+    RankedSelection,
+)
 from src.chrono_s_thompson.graph.nodes.photographer import take_photograph_node
-from src.chrono_s_thompson.core.state import ChronoState, RankedSelection, HistoricalEvent
-from typing import Any, Dict
+
 
 @pytest.mark.asyncio
-async def test_take_photograph() -> Dict[str, Any]:
+async def test_take_photograph_success():
+    """Verify take_photograph_node generates image file and returns photo_filename & photo_file_path."""
     ranked_selection = RankedSelection(
         selected_event=HistoricalEvent(
-            year=1883, 
-            title="Eruption of Krakatoa reaches its violent climax.",
+            year=1883,
+            title="Eruption of Krakatoa",
             page_name="1883_eruption_of_Krakatoa",
-            category="General History"
+            category="General History",
         ),
-        gonzo_hook="Forget rulers and treaties: here the Earth lost its composure, exploded in screams, and showed that nature also knows how to make a power play — with right flames in the sky, killer waves, and a roar so obscene it became a global legend.",
-        photo_description="A volcanic eruption spewing ash and lava into the sky, with a massive plume of smoke rising above the horizon.",
-        query_string="Volcanic eruption spewing ash and lava into the sky"
+        gonzo_hook="The Earth exploded in screams.",
+        photo_description="A volcanic eruption spewing ash and lava into the sky.",
+        query_string="Krakatoa eruption ash plume",
     )
-    test_photographer_state = ChronoState(
-        curated_story=ranked_selection
-    )
-    try:
-        return await take_photograph_node(test_photographer_state)
-    except Exception as e:
-        print(e)
-        return {"photo_file_path": None}
+    test_state = ChronoState(curated_story=ranked_selection)
 
-if __name__ == "__main__":
-    import asyncio
-    result = asyncio.run(test_take_photograph())
-    print(f"Generated photo file: {result['photo_file_path']}")
+    fake_b64 = base64.b64encode(b"fake_image_bytes").decode("utf-8")
+    mock_img_item = MagicMock()
+    mock_img_item.b64_json = fake_b64
+    mock_response = MagicMock()
+    mock_response.data = [mock_img_item]
+
+    with patch(
+        "src.chrono_s_thompson.graph.nodes.photographer.client.images.generate",
+        return_value=mock_response,
+    ) as mock_gen:
+        result = await take_photograph_node(test_state)
+
+        assert "photo_filename" in result
+        assert "photo_file_path" in result
+        assert result["photo_filename"].endswith(".png")
+        assert result["photo_file_path"].exists()
+        mock_gen.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_take_photograph_missing_curated_story():
+    """Verify take_photograph_node returns error payload when curated_story is missing."""
+    test_state = ChronoState()
+    result = await take_photograph_node(test_state)
+
+    assert result.get("error_msg") is not None
+    assert "No curated story available" in result.get("error_msg", "")
+
+
+@pytest.mark.asyncio
+async def test_take_photograph_openai_failure():
+    """Verify take_photograph_node returns error state on OpenAI API exception."""
+    ranked_selection = RankedSelection(
+        selected_event=HistoricalEvent(
+            year=1883,
+            title="Eruption of Krakatoa",
+            page_name="1883_eruption_of_Krakatoa",
+            category="General History",
+        ),
+        gonzo_hook="The Earth exploded in screams.",
+        photo_description="A volcanic eruption spewing ash and lava.",
+        query_string="Krakatoa eruption ash plume",
+    )
+    test_state = ChronoState(curated_story=ranked_selection)
+
+    with patch(
+        "src.chrono_s_thompson.graph.nodes.photographer.client.images.generate",
+        side_effect=Exception("API key error"),
+    ):
+        result = await take_photograph_node(test_state)
+
+        assert result.get("error") is True
+        assert "Failed to generate photo" in result.get("error_msg", "")

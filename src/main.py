@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger("ChronoMain")
 
 
-async def main():
+async def run_async_main():
     today_str = datetime.now().strftime("%m/%d")
     logger.info(f"🕶️  Starting Chrono S. Thompson dispatch for {today_str}...")
 
@@ -41,5 +41,11 @@ async def main():
         print("\n" + "=" * 60)
         print(result.get("error_msg"))
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def main():
+    """
+    runs the async main function
+    """
+    asyncio.run(run_async_main())
+
+if __name__ == "__main__":  
+    main()

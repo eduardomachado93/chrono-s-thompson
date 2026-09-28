@@ -44,11 +44,12 @@ State transitions are strictly typed in `src/chrono_s_thompson/core/state.py` to
 | `batched_events` | `EventList` | LLM-filtered structured collection of historical events. |
 | `curated_story` | `Optional[RankedSelection]` | Pydantic model representing the selected event and Gonzo hook. |
 | `detailed_event` | `Optional[DetailedEvent]` | In-depth historical event details when queried. |
-| `filename` | `Optional[str]` | Local filename of the generated photograph image (`storage/images/`). |
+| `photo_file_path` | `Optional[FilePath]` | Local filesystem path to the generated photograph image. |
+| `photo_filename` | `Optional[str]` | Local filename of the generated photograph image (`storage/images/`). |
 | `custom_event` | `Optional[HistoricalEvent]` | User-selected historical event from Streamlit UI override. |
 | `retriever` | `Optional[VectorStoreRetriever]` | In-memory vector store retriever built from scraped Wikipedia content. |
 | `final_article` | `Optional[str]` | Complete Gonzo article formatted in Markdown. |
-| `published_path` | `Optional[str]` | Filesystem path of the persisted dispatch (`storage/output/{date}_{title}.md`). |
+| `published_path` | `Optional[FilePath]` | Filesystem path of the persisted dispatch (`storage/output/{date}_{title}.md`). |
 
 ---
 
@@ -59,7 +60,7 @@ State transitions are strictly typed in `src/chrono_s_thompson/core/state.py` to
 * **Mechanism:** Interacts with the local `FastMCP` server over standard I/O (`stdio`), invoking the `get_historical_events` tool.
 * **Input State:** `target_date`
 * **Output State Mutation:** `{"raw_events": List[HistoricalEvent]}`
-* **Failure Guardrail:** Retries with exponential backoff; falls back gracefully to cached mock data if network calls fail.
+* **Failure Guardrail:** Retries according to the node retry policy and returns an error payload in the state for graph error routing.
 
 ---
 
@@ -85,15 +86,17 @@ State transitions are strictly typed in `src/chrono_s_thompson/core/state.py` to
 class RankedSelection(BaseModel):
     selected_event: HistoricalEvent = Field(description="The chosen historical event.")
     gonzo_hook: str = Field(description="The chaotic, urgent, or ironic editorial angle.")
+    photo_description: str = Field(description="Visual prompt description for image synthesis.")
+    query_string: str = Field(description="Search query for retrieving Wikipedia context.")
 ```
 
 ---
 
 ### 4. Photographer Node (`src/chrono_s_thompson/graph/nodes/photographer.py`)
 * **Role:** Visual Synthesis & Image Generation.
-* **Mechanism:** Constructs a detailed prompt based on the selected event, calls Pollinations AI image generation, and persists the image locally.
+* **Mechanism:** Constructs a detailed prompt based on the selected event, calls OpenAI image generation, and persists the image locally.
 * **Input State:** `curated_story`
-* **Output State Mutation:** `{"filename": str}` (saved to `storage/images/{filename}`)
+* **Output State Mutation:** `{"photo_file_path": FilePath, "photo_filename": str}` (saved to `storage/images/{photo_filename}`)
 
 ---
 
@@ -112,7 +115,7 @@ class RankedSelection(BaseModel):
   * **First-Person Immersion:** Report as an eyewitness present at the historical moment.
   * **Pacing & Tone:** Urgent, frenetic, satirical, razor-sharp, and unvarnished Gonzo prose.
   * **Visual Embedding:** Embeds the generated image into the Markdown header.
-* **Input State:** `curated_story`, `retriever`, `filename`
+* **Input State:** `curated_story`, `retriever`, `photo_filename`
 * **Output State Mutation:** `{"final_article": str, "published_path": str}`
 
 ---
@@ -144,12 +147,36 @@ uv sync
 # Run Streamlit control panel
 uv run streamlit run app.py
 
+# Run terminal CLI execution
+uv run chrono-s-thompson
+# Or: uv run python -m src.main
+
 # Run unit and node test suite
 uv run pytest
 
 # Test MCP server via inspector
 npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
 ```
+
+---
+
+## 🔍 Observability & Step-by-Step Tracing (LangSmith)
+
+Step-by-step debugging and visualization of state transitions, node execution times, and LLM prompt/completion payloads are powered natively via **LangSmith**.
+
+To enable tracing, configure the following variables in `.env`:
+
+```env
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_PROJECT=chrono-s-thompson
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+```
+
+### Key Tracing Capabilities:
+* **Node-by-Node Execution Inspection:** View input and output `ChronoState` mutations at each step (`fetcher` ➔ `batcher` ➔ `ranker` ➔ `photographer` ➔ `indexer` ➔ `writer`).
+* **Structured Output Audit:** Inspect Pydantic schema parsing (`EventList`, `RankedSelection`) for LLM outputs.
+* **Latency & Token Telemetry:** Monitor response times and token costs per graph execution.
 
 ---
 
