@@ -27,7 +27,17 @@ async def search_context_node(state: ChronoState) -> Dict[str, Any]:
     logger.info(f"[Node: search_context] Performing vector search for query: '{query}'...")
 
     try:
-        docs = await retriever.ainvoke(query, **{"k": 12})
+        docs = await retriever.ainvoke(query, **{"k": 6})
+        
+        # Include lead overview chunk if present in vector store but omitted from top-k vector search
+        vectorstore = getattr(retriever, "vectorstore", None)
+        if vectorstore and hasattr(vectorstore, "store"):
+            all_store_docs = list(vectorstore.store.values())
+            lead_docs = [d for d in all_store_docs if getattr(d, "metadata", {}).get("is_lead")]
+            for lead in lead_docs:
+                if lead not in docs:
+                    docs.insert(0, lead)
+
         logger.info(f"[Node: search_context] Vector search returned {len(docs)} document chunks.")
         return {"retrieved_docs": docs}
     except Exception as exc:

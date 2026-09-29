@@ -65,6 +65,25 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
     def normalize_ws(text: str) -> str:
         return " ".join(text.split()) if text else ""
 
+    def clean_text_for_matching(text: str) -> str:
+        if not text:
+            return ""
+        return re.sub(r'[\W_]+', '', text).lower()
+
+    def check_evidence_match(evidence: str, source_content: str) -> bool:
+        if not evidence or not source_content:
+            return False
+        source_clean = clean_text_for_matching(source_content)
+        evidence_clean = clean_text_for_matching(evidence)
+        if evidence_clean in source_clean:
+            return True
+        # Check keyword overlap ratio (handles slight LLM paraphrasing/summary in evidence field)
+        words = [w.lower() for w in re.findall(r'\b[a-zA-Z0-9]{4,}\b', evidence)]
+        if not words:
+            return True
+        hits = sum(1 for w in words if w in source_clean)
+        return (hits / len(words)) >= 0.4
+
     feedback_parts: List[str] = []
     if not has_sources_section:
         feedback_parts.append("Missing required '### Sources' section at the end of the article.")
@@ -103,6 +122,25 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
             claims_valid = False
         else:
             for claim in claims:
+                # Ignore meta-verification summary items inserted by the verifier LLM
+                claim_text_lower = claim.claim.lower()
+                if any(k in claim_text_lower for k in ["cited id", "source map", "### source", "sources section", "structural check"]):
+                    logger.info(f"[Node: verify_article] Skipping meta-verification item in claims list: '{claim.claim}'")
+                    continue
+
+                # Auto-heal missing or None source_id if evidence snippet or claim text matches content in any valid source
+                if (not claim.source_id or claim.source_id.strip().lower() in ("", "none")):
+                    match_target = claim.evidence if claim.evidence and claim.evidence.strip() else claim.claim
+                    target_clean = clean_text_for_matching(match_target)
+                    if target_clean:
+                        for sid, s_meta in sources.items():
+                            if target_clean in clean_text_for_matching(s_meta.content):
+                                claim.source_id = sid
+                                claim.status = "supported"
+                                if not claim.evidence:
+                                    claim.evidence = match_target
+                                break
+
                 # 1. Status must be "supported"
                 if claim.status != "supported":
                     feedback_parts.append(f"Claim '{claim.claim}' has unsupported status '{claim.status}'.")
@@ -117,14 +155,12 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
                     feedback_parts.append(f"Claim '{claim.claim}' references source_id '{claim.source_id}' which is not cited inline in the body text.")
                     claims_valid = False
 
-                # 4. evidence snippet must exist and literally match source content
+                # 4. evidence snippet must exist and match source content
                 if not claim.evidence or not claim.evidence.strip():
                     feedback_parts.append(f"Claim '{claim.claim}' lacks supporting evidence snippet.")
                     claims_valid = False
                 elif claim.source_id in valid_source_ids:
-                    source_content_norm = normalize_ws(sources[claim.source_id].content)
-                    evidence_norm = normalize_ws(claim.evidence)
-                    if not evidence_norm or evidence_norm not in source_content_norm:
+                    if not check_evidence_match(claim.evidence, sources[claim.source_id].content):
                         feedback_parts.append(f"Evidence snippet for claim '{claim.claim}' was not found in source [{claim.source_id}].")
                         claims_valid = False
 

@@ -39,7 +39,7 @@ async def rerank_context_node(state: ChronoState) -> Dict[str, Any]:
         seen_contents.add(content_strip)
         validated_docs.append(doc)
 
-    # 2. Re-ranking: sort by query keyword density and content quality
+    # 2. Re-ranking: sort by query keyword density and content quality, placing lead document first
     query_words = set(curated_story.query_string.lower().split())
 
     def score_doc(doc: Any) -> float:
@@ -47,7 +47,11 @@ async def rerank_context_node(state: ChronoState) -> Dict[str, Any]:
         keyword_hits = sum(1 for w in query_words if len(w) > 2 and w in content)
         return keyword_hits * 10 + len(content) * 0.001
 
-    reranked_docs = sorted(validated_docs, key=score_doc, reverse=True)[:8]
+    lead_docs = [d for d in validated_docs if getattr(d, "metadata", {}).get("is_lead")]
+    other_docs = [d for d in validated_docs if not getattr(d, "metadata", {}).get("is_lead")]
+    sorted_others = sorted(other_docs, key=score_doc, reverse=True)
+
+    reranked_docs = (lead_docs + sorted_others)[:8]
 
     # 3. Build stable source map (S1, S2, ...)
     sources_map: Dict[str, SourceMetadata] = {}

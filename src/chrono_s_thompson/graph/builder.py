@@ -84,7 +84,7 @@ def build_chrono_graph():
     workflow.add_node(
         "verify_article",
         verify_article_node,
-        retry_policy=RetryPolicy(max_attempts=2),
+        retry_policy=RetryPolicy(max_attempts=4),
         timeout=TimeoutPolicy(run_timeout=60)
     )
     workflow.add_node(

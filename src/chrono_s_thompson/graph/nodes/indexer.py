@@ -48,9 +48,10 @@ async def index_selected_event(state: ChronoState) -> Dict[str, Any]:
                         "title": title,
                         "url": url,
                         "page_name": page_name,
+                        "is_lead": (idx == 0),
                     }
                 )
-                for chunk in doc_splits
+                for idx, chunk in enumerate(doc_splits)
             ]
 
             retriever = get_retriever(docs=documents)

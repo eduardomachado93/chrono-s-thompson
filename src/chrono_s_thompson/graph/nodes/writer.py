@@ -119,7 +119,14 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
 
     feedback_section = ""
     if state.verification_feedback:
-        feedback_section = f"REVISION INSTRUCTIONS (Previous draft failed verification):\n{state.verification_feedback}\n"
+        feedback_section = (
+            f"CRITICAL REVISION INSTRUCTIONS (Previous draft failed factual verification):\n"
+            f"Feedback on previous draft:\n{state.verification_feedback}\n\n"
+            f"REVISION REQUIREMENTS:\n"
+            f"1. Strictly REMOVE or CORRIGATE any claim mentioned in the feedback above that lacks direct support in the context documents.\n"
+            f"2. Ensure EVERY historical statement of fact is backed by a valid source tag ([S1], [S2], etc.) present in the provided context.\n"
+            f"3. Do NOT invent or keep any unsupported historical claims.\n"
+        )
 
     llm = ChatOpenAI(
         model=settings.model_name,
