@@ -78,7 +78,7 @@ async def test_index_selected_event_missing_curated_story():
     result = await index_selected_event(test_state)
 
     assert result.get("error") is True
-    assert "Curated Story not found" in result.get("error_msg", "")
+    assert "Curated story not found" in result.get("error_msg", "")
 
 
 @pytest.mark.asyncio

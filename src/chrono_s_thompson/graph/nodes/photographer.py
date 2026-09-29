@@ -30,7 +30,7 @@ async def take_photograph_node(state: ChronoState) -> Dict[str, Any]:
     """
     curated_story = state.curated_story
     if not curated_story:
-        return {"error": None, "error_msg": "[Node: photographer] No curated story available for the photo."}
+        return {"error": True, "error_msg": "[Node: photographer] No curated story available for the photo."}
 
     event = curated_story.selected_event
     logger.info(

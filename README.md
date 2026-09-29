@@ -39,12 +39,13 @@ graph TD
     D -->|RankedSelection & Hook| E[🎨 photographer node]
     E -->|Generated Image saved| F[📚 index_selected_event RAG node]
     F -->|VectorStoreRetriever & Docs| G[🔎 search_context node]
-    G -->|retrieved_docs| H[📊 rerank_context node]
-    H -->|reranked_docs & sources| I[✍️ write_article node]
+    G -->|Docs found: len >= 1| H[📊 rerank_context node]
+    G -->|No docs: len < 1| I[✍️ write_article node]
+    H -->|reranked_docs & sources| I
     I -->|draft_article & sources| J[🔍 verify_article node]
-    J -->|Invalid & attempts < 2| I
+    J -->|Invalid & attempts < 4| I
     J -->|Valid VerificationReport| K[💾 publish_article node]
-    J -->|Invalid & attempts >= 2| L[🛑 END: Error Halting]
+    J -->|Invalid & attempts >= 4| L[🛑 END: Error Halting]
     K -->|Gonzo Dispatch .md| M[🏁 END: Persisted in storage/output]
 ```
 
@@ -55,7 +56,7 @@ graph TD
 3. **Curator & Ranker Node (`rank_events`)**: Evaluates narrative friction and selects the main event with a Gonzo editorial angle (`RankedSelection`).
 4. **Photographer Node (`photographer`)**: Crafts visual prompts and calls OpenAI to generate period-appropriate illustrations saved to `storage/images/`.
 5. **RAG Indexer Node (`index_selected_event`)**: Fetches Wikipedia text, strips wikitext clutter, attaches source metadata (`title`, `url`, `page_name`) to `Document` chunks, and builds an in-memory RAG retriever vector store.
-6. **Context Searcher Node (`search_context`)**: Queries the vector store retriever with the curated query string to fetch relevant historical passages.
+6. **Context Searcher Node (`search_context`)**: Queries the vector store retriever with the curated query string to fetch relevant historical passages. If passages are found, routes to `rerank_context`; if empty, bypasses directly to `write_article`.
 7. **Context Reranker Node (`rerank_context`)**: Validates, deduplicates, ranks retrieved text chunks by relevance, and creates stable source mappings (`S1`, `S2`, ...).
 8. **Gonzo Journalist Node (`write_article`)**: Synthesizes the reranked context, assigns stable source IDs (`[S1]`, `[S2]`), and drafts the article with inline citations and a collapsible `### Sources` section.
 9. **Fact Verifier Node (`verify_article`)**: Audits citation IDs deterministically, verifies factual claims against source evidence (`VerificationReport`), and manages the revision feedback loop. *Note: Automated LLM verification is a heuristic check and does not guarantee absolute historical truth.*
@@ -169,6 +170,15 @@ uv run pytest
 
 ---
 
+### 📓 Interactive Jupyter Notebooks
+
+Interactive notebooks are available in the `notebooks/` directory for step-by-step testing and state graph visualization:
+
+* **[Step-by-Step Node Testing Notebook](notebooks/test_nodes_step_by_step.ipynb)**: Interactively executes each LangGraph node sequentially and inspects state mutations on `ChronoState`.
+* **[Graph Visualization Notebook](notebooks/visualize_graph.ipynb)**: Compiles the workflow and renders the visual Mermaid state graph diagram using `IPython.display.Image(graph.get_graph().draw_mermaid_png())`.
+
+---
+
 ## 📂 Project Structure
 
 ```
@@ -177,6 +187,9 @@ chrono-s-thompson/
 ├── pyproject.toml              # Project metadata & dependencies (uv build)
 ├── uv.lock                     # Deterministic dependency lock file
 ├── avatar.svg                  # Chrono S. Thompson Avatar Logo
+├── notebooks/                  # Interactive Jupyter notebooks for debugging & visualization
+│   ├── test_nodes_step_by_step.ipynb # Step-by-step node execution & state inspection
+│   └── visualize_graph.ipynb   # LangGraph state graph visual diagram rendering
 ├── src/
 │   └── chrono_s_thompson/
 │       ├── core/               # State schemas (ChronoState) & Translation utilities

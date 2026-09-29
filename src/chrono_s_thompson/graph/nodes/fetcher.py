@@ -4,7 +4,7 @@ Node responsible for fetching historical facts from the MCP Server in the Chrono
 import logging
 from typing import Any, Dict
 
-from src.chrono_s_thompson.core.state import ChronoState
+from src.chrono_s_thompson.core.state import ChronoState, HistoricalEvent
 from src.chrono_s_thompson.mcp_client.client import ChronoMCPClient, MCPClientError
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,10 @@ async def fetch_events_node(state: ChronoState) -> Dict[str, Any]:
 
     try:
         events = await mcp_client.get_historical_events(target_date)
+        events = [
+            e if isinstance(e, HistoricalEvent) else HistoricalEvent.model_validate(e)
+            for e in events
+        ]
         logger.info(
             f"[Node: fetch_events] Success: {len(events)} historical events retrieved via MCP."
         )

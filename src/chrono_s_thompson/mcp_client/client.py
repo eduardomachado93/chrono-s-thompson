@@ -5,12 +5,13 @@ https://gofastmcp.com/getting-started/welcome
 import json
 import logging
 import os
-from posixpath import sep
+from pathlib import Path
 import sys
 from typing import Any, List
 
 from fastmcp.client import Client, StdioTransport
 
+from src.chrono_s_thompson.core.state import DetailedEvent, HistoricalEvent
 from src.config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -48,21 +49,34 @@ class ChronoMCPClient:
         # Copies environment variables already loaded by settings.py
         env = dict(os.environ)
 
+        # Defines the Python executable as an absolute path
+        if settings.mcp_python_path == "python":
+            python_cmd = sys.executable
+        else:
+            configured_path = Path(settings.mcp_python_path)
+            if not configured_path.is_absolute():
+                configured_path = (project_root / configured_path).resolve()
+            if configured_path.exists():
+                python_cmd = str(configured_path)
+            else:
+                python_cmd = sys.executable
+
+        if python_cmd.endswith("pythonw.exe"):
+            python_cmd = python_cmd[:-11] + "python.exe"
+
         # Ensures that Python finds the project packages at the root and in the src directory
         src_path = project_root / "src"
-        env["PYTHONPATH"] = f"{project_root}{sep}{src_path}"  # Use osep for cross-platform compatibility
-
-        # Defines the Python executable (sys.executable if mcp_python_path is 'python')
-        python_cmd = (
-            sys.executable
-            if settings.mcp_python_path == "python"
-            else settings.mcp_python_path
-        )
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        paths_to_add = [str(project_root), str(src_path)]
+        if existing_pythonpath:
+            paths_to_add.append(existing_pythonpath)
+        env["PYTHONPATH"] = os.pathsep.join(paths_to_add)
 
         self.transport = StdioTransport(
             command=python_cmd,
             args=["-m", "src.chrono_s_thompson.mcp_server.server"],
             env=env,
+            cwd=str(project_root),
             log_file=_get_safe_errlog()
         )
 
@@ -102,31 +116,48 @@ class ChronoMCPClient:
             raise MCPClientError(f"MCP execution failure ({tool_name}): {exc}") from exc
 
 
-    async def get_historical_events(self, date_str: str) -> List[dict]:
+    async def get_historical_events(self, date_str: str) -> List[HistoricalEvent]:
         """
         Retrieves historical events for a given date.
 
         Args:
             date_str (str): The date to retrieve events for in MM/DD format.
         Returns:
-            List[dict]: A list of dictionaries representing the historical events, or an empty list if no events are found.
+            List[HistoricalEvent]: A list of HistoricalEvent models representing the historical events, or an empty list if no events are found.
         """
         if len(date_str) != 5 or date_str[2] != '/':
             logger.error(f"Invalid date format: {date_str}. Expected MM/DD format.")
             return []
         data = await self.call_tool("get_historical_events", {"date": date_str})
         if isinstance(data, list):
-            return data
+            return [
+                item if isinstance(item, HistoricalEvent) else HistoricalEvent.model_validate(item)
+                for item in data
+            ]
         return []
 
-    async def get_historical_event_details(self, page_name: str) -> dict:
+    async def get_historical_event_details(self, page_name: str) -> DetailedEvent:
         """
         Retrieves detailed information for a specific historical event.
 
         Args:
             page_name (str): The page name of the historical event to retrieve details for.
+        Returns:
+            DetailedEvent: DetailedEvent model containing title, source, url, and page_name.
         """
         data = await self.call_tool("get_historical_event_details", {"page_name": page_name})
-        if isinstance(data, dict):
+        if isinstance(data, DetailedEvent):
             return data
-        return {}
+        if isinstance(data, dict):
+            return DetailedEvent(
+                title=data.get("title") or page_name,
+                source=data.get("source") or "",
+                page_name=data.get("page_name") or page_name,
+                url=data.get("url") or f"https://en.wikipedia.org/wiki/{page_name}",
+            )
+        return DetailedEvent(
+            title=page_name,
+            source="",
+            page_name=page_name,
+            url=f"https://en.wikipedia.org/wiki/{page_name}",
+        )

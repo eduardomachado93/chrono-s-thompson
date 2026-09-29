@@ -77,7 +77,7 @@ async def write_article_node(state: ChronoState) -> Dict[str, Any]:
     """
     curated_story = state.curated_story
     if not curated_story:
-        return {"error": True, "error_msg": "Error on getting the required states."}
+        return {"error": True, "error_msg": "[Node: write_article] Curated story not found in state."}
 
     event = curated_story.selected_event
     target_date = state.target_date

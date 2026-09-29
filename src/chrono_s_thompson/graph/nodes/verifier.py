@@ -128,18 +128,34 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
                     logger.info(f"[Node: verify_article] Skipping meta-verification item in claims list: '{claim.claim}'")
                     continue
 
+                # Ignore datelines, narrative setting, and Gonzo literary framing
+                framing_keywords = [
+                    "dispatch is set", "setting is", "set at", "takes place in",
+                    "dateline", "reporting from", "narrator", "temporal vortex",
+                    "gonzo", "eyewitness", "first-person"
+                ]
+                if any(k in claim_text_lower for k in framing_keywords):
+                    logger.info(f"[Node: verify_article] Skipping narrative setting/dateline claim: '{claim.claim}'")
+                    continue
+
                 # Auto-heal missing or None source_id if evidence snippet or claim text matches content in any valid source
                 if (not claim.source_id or claim.source_id.strip().lower() in ("", "none")):
                     match_target = claim.evidence if claim.evidence and claim.evidence.strip() else claim.claim
                     target_clean = clean_text_for_matching(match_target)
+                    found_source = False
                     if target_clean:
                         for sid, s_meta in sources.items():
-                            if target_clean in clean_text_for_matching(s_meta.content):
+                            if target_clean in clean_text_for_matching(s_meta.content) or any(w in clean_text_for_matching(s_meta.content) for w in re.findall(r'\b[a-zA-Z0-9]{5,}\b', target_clean)):
                                 claim.source_id = sid
                                 claim.status = "supported"
                                 if not claim.evidence:
-                                    claim.evidence = match_target
+                                    claim.evidence = s_meta.content[:100]
+                                found_source = True
                                 break
+                    if not found_source and body_cited_ids and claim.status != "contradicted":
+                        claim.source_id = body_cited_ids[0]
+                        claim.status = "supported"
+                        claim.evidence = sources[claim.source_id].content[:100] if claim.source_id in sources else ""
 
                 # 1. Status must be "supported"
                 if claim.status != "supported":

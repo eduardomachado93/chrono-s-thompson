@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from src.chrono_s_thompson.core.state import DetailedEvent, HistoricalEvent
 from src.chrono_s_thompson.mcp_client.client import ChronoMCPClient, MCPClientError
 
 
@@ -26,8 +27,9 @@ async def test_mcp_client_get_historical_events_success():
 
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["year"] == 1883
-        assert result[0]["page_name"] == "1883_eruption_of_Krakatoa"
+        assert isinstance(result[0], HistoricalEvent)
+        assert result[0].year == 1883
+        assert result[0].page_name == "1883_eruption_of_Krakatoa"
         mock_call.assert_called_once_with("get_historical_events", {"date": "08/27"})
 
 
@@ -41,16 +43,16 @@ async def test_mcp_client_get_historical_events_invalid_date():
 
 @pytest.mark.asyncio
 async def test_mcp_client_get_historical_event_details_success():
-    """Verify get_historical_event_details returns detail dictionary."""
+    """Verify get_historical_event_details returns DetailedEvent model instance."""
     mock_details = {"title": "Krakatoa", "source": "Detailed Krakatoa historical content"}
     client = ChronoMCPClient()
     with patch.object(client, "call_tool", new_callable=AsyncMock) as mock_call:
         mock_call.return_value = mock_details
         result = await client.get_historical_event_details("1883_eruption_of_Krakatoa")
 
-        assert isinstance(result, dict)
-        assert result["title"] == "Krakatoa"
-        assert "source" in result
+        assert isinstance(result, DetailedEvent)
+        assert result.title == "Krakatoa"
+        assert result.source == "Detailed Krakatoa historical content"
         mock_call.assert_called_once_with("get_historical_event_details", {"page_name": "1883_eruption_of_Krakatoa"})
 
 

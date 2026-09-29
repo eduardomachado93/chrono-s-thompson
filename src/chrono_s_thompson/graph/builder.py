@@ -29,10 +29,19 @@ def build_chrono_graph():
             return "write_article"
         return "publish_article"
 
+    # 3. Decision routing helper after context vector search
+    def route_after_search_context(state: ChronoState) -> str:
+        """Routes to rerank_context if documents were retrieved, or bypasses directly to write_article if none found."""
+        if state.error:
+            return END
+        if len(state.retrieved_docs) < 1:
+            return "write_article"
+        return "rerank_context"
+
     # Initialize the state graph with the shared ChronoState schema
     workflow = StateGraph(ChronoState)
 
-    # 3. Node registration with retry and timeout policies
+    # 4. Node registration with retry and timeout policies
     workflow.add_node(
         "fetch_events", 
         fetch_events_node,
@@ -94,17 +103,16 @@ def build_chrono_graph():
         timeout=TimeoutPolicy(run_timeout=60)
     )
 
-    # 4. Entry point: start execution at the fetch_events node
+    # 5. Entry point: start execution at the fetch_events node
     workflow.add_edge(START, "fetch_events")
 
-    # 5. Sequential pipeline definitions with conditional error checks between nodes
+    # 6. Sequential pipeline definitions with conditional error checks between nodes
     pipeline = [
         ("fetch_events", "batch_events"),
         ("batch_events", "rank_events"),
         ("rank_events", "photographer"),
         ("photographer", "index_selected_event"),
         ("index_selected_event", "search_context"),
-        ("search_context", "rerank_context"),
         ("rerank_context", "write_article"),
         ("write_article", "verify_article"),
     ]
@@ -119,7 +127,18 @@ def build_chrono_graph():
             }
         )
 
-    # 6. Verification conditional transitions: retry draft or publish
+    # 7. Context search dynamic routing: proceed to rerank_context or bypass directly to write_article
+    workflow.add_conditional_edges(
+        "search_context",
+        route_after_search_context,
+        path_map={
+            "rerank_context": "rerank_context",
+            "write_article": "write_article",
+            END: END
+        }
+    )
+
+    # 8. Verification conditional transitions: retry draft or publish
     workflow.add_conditional_edges(
         "verify_article",
         route_after_verification,
@@ -130,7 +149,7 @@ def build_chrono_graph():
         }
     )
 
-    # 7. Final transition: route published article to END
+    # 9. Final transition: route published article to END
     workflow.add_conditional_edges(
         "publish_article",
         check_error_and_route(END),

@@ -62,7 +62,7 @@ async def test_write_article_missing_state():
     result = await write_article_node(test_state)
 
     assert result.get("error") is True
-    assert "Error on getting the required states" in result.get("error_msg", "")
+    assert "Curated story not found" in result.get("error_msg", "")
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,12 @@ class HistoricalEvent(BaseModel):
     page_name: str = Field(description="Title of the associated Wikipedia article.")
     category: str = Field(default="General History", description="Thematic category of the event.")
 
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
+    def get(self, item: str, default: Any = None) -> Any:
+        return getattr(self, item, default)
+
 class EventList(BaseModel):
     events: list[HistoricalEvent] = Field(description="A list of historical events.")
 
@@ -39,6 +45,12 @@ class DetailedEvent(BaseModel):
     source: str = Field(description="Source of the information about the event.")
     page_name: str = Field(default="", description="Wikipedia page identifier.")
     url: str = Field(default="", description="Canonical URL of the Wikipedia source.")
+
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
+    def get(self, item: str, default: Any = None) -> Any:
+        return getattr(self, item, default)
 
 class SourceMetadata(BaseModel):
     """Metadata and snippet of a retrieved historical source."""

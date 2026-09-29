@@ -16,7 +16,7 @@ Chrono S. Thompson is an autonomous agentic pipeline designed to bridge the temp
 6. **Searches vector context** querying the vector store retriever with the curated query string to fetch relevant text chunks (`retrieved_docs`).
 7. **Validates & re-ranks context** deduplicating, scoring context chunks by keyword density against the selected event and hook, and assigning stable source IDs (`[S1]`, `[S2]`) with metadata (`sources`).
 8. **Drafts high-engagement prose** with stable inline citations (`[S1]`, `[S2]`) and a mandatory `### Sources` section formatted with collapsible `<details><summary>` blocks showing canonical URLs and cited excerpts in the visceral voice of Gonzo journalism.
-9. **Fact-checks and audits citations** in a dedicated verifier node (`VerificationReport`), checking deterministic citation IDs, missing sources, and supported vs. unsupported/contradicted claims, with a max 2-attempt correction loop.
+9. **Fact-checks and audits citations** in a dedicated verifier node (`VerificationReport`), checking deterministic citation IDs, missing sources, and supported vs. unsupported/contradicted claims, with a max 4-attempt correction loop.
 10. **Persists and archives** verified daily dispatches automatically as Markdown files in `storage/output/`.
 
 ---
@@ -31,12 +31,13 @@ graph TD
     Ranker -->|RankedSelection & Hook| Photographer[4. Photographer Node\ntake_photograph_node]
     Photographer -->|Saved Image Filename| Indexer[5. RAG Indexer Node\nindex_selected_event]
     Indexer -->|VectorStoreRetriever & Docs| Searcher[6. Context Searcher Node\nsearch_context_node]
-    Searcher -->|retrieved_docs| Reranker[7. Context Reranker Node\nrerank_context_node]
-    Reranker -->|reranked_docs & sources| Writer[8. Gonzo Journalist Node\nwrite_article_node]
+    Searcher -->|Docs found: len >= 1| Reranker[7. Context Reranker Node\nrerank_context_node]
+    Searcher -->|No docs: len < 1| Writer[8. Gonzo Journalist Node\nwrite_article_node]
+    Reranker -->|reranked_docs & sources| Writer
     Writer -->|draft_article & sources| Verifier[9. Verifier Node\nverify_article_node]
-    Verifier -->|Invalid & attempts < 2| Writer
+    Verifier -->|Invalid & attempts < 4| Writer
     Verifier -->|Valid VerificationReport| Publisher[10. Publisher Node\npublish_article_node]
-    Verifier -->|Invalid & attempts >= 2| END([END Error Halting])
+    Verifier -->|Invalid & attempts >= 4| END([END Error Halting])
     Publisher -->|Markdown Dispatch| END([END Storage / UI])
 ```
 
@@ -63,7 +64,7 @@ State transitions are strictly typed in `src/chrono_s_thompson/core/state.py` to
 | `sources` | `Dict[str, SourceMetadata]` | Mapping of stable source IDs (`S1`, `S2`) to title, URL, page_name, and content snippet. |
 | `verification_result` | `Optional[VerificationReport]` | Audit results including validity, missing citation IDs, and claim verification status. |
 | `verification_feedback` | `Optional[str]` | Actionable feedback guidelines for article re-drafting when verification fails. |
-| `revision_attempts` | `int` | Counter tracking article revision attempts (capped at 2). |
+| `revision_attempts` | `int` | Counter tracking article revision attempts (capped at 4). |
 | `final_article` | `Optional[str]` | Verified Gonzo article content formatted in Markdown. |
 | `published_path` | `Optional[FilePath]` | Filesystem path of the persisted dispatch (`storage/output/{date}_{title}.md`). |
 
@@ -125,8 +126,11 @@ class RankedSelection(BaseModel):
 ---
 
 ### 6. Context Searcher Node (`src/chrono_s_thompson/graph/nodes/searcher.py`)
-* **Role:** Vector Database Retrieval.
+* **Role:** Vector Database Retrieval & Context Branching.
 * **Mechanism:** Queries the in-memory vector store retriever using `curated_story.query_string` to fetch top matching text chunks.
+* **Conditional Routing:** Evaluates retrieved chunks via `route_after_search_context`:
+  * If relevant chunks are found (`len(retrieved_docs) >= 1`), routes forward to `rerank_context_node`.
+  * If no chunks are retrieved (`len(retrieved_docs) < 1`), bypasses directly to `write_article_node`.
 * **Input State:** `curated_story`, `retriever`
 * **Output State Mutation:** `{"retrieved_docs": List[Document]}`
 
@@ -154,7 +158,7 @@ class RankedSelection(BaseModel):
 ### 9. Fact Verifier Node (`src/chrono_s_thompson/graph/nodes/verifier.py`)
 * **Role:** Citation Verification & Factual Integrity Review.
 * **Mechanism:** Performs a deterministic regex citation check for unattached IDs (e.g. `[S99]`) and `### Sources` section presence, followed by an LLM structured claim review (`VerificationReport`).
-* **Correction Loop:** If claims are unsupported/contradicted or citations are missing, populates `verification_feedback` and routes back to `write_article` (up to 2 revision attempts).
+* **Correction Loop:** If claims are unsupported/contradicted or citations are missing, populates `verification_feedback` and routes back to `write_article` (up to 4 revision attempts).
 * **Verification Limitation:** Automated LLM fact-checking is a heuristic analysis layer and does not guarantee absolute historical truth.
 * **Input State:** `draft_article`, `sources`, `revision_attempts`
 * **Output State Mutation:** `{"verification_result": VerificationReport, "verification_feedback": Optional[str], "revision_attempts": int}`
@@ -206,6 +210,25 @@ uv run pytest
 # Test MCP server via inspector
 npx @modelcontextprotocol/inspector uv run python -m src.chrono_s_thompson.mcp_server.server
 ```
+
+---
+
+## 📓 Interactive Jupyter Notebooks (`notebooks/`)
+
+The repository includes dedicated Jupyter notebooks in `notebooks/` for interactive debugging, step-by-step state inspection, and workflow visualization:
+
+1. **`notebooks/test_nodes_step_by_step.ipynb`**:
+   - Executes all 10 state graph nodes (`fetch_events` ➔ `batch_events` ➔ `rank_events` ➔ `photographer` ➔ `index_selected_event` ➔ `search_context` ➔ `rerank_context` ➔ `write_article` ➔ `verify_article` ➔ `publish_article`) in sequence.
+   - Inspects `ChronoState` data mutations and log outputs at each individual step.
+
+2. **`notebooks/visualize_graph.ipynb`**:
+   - Compiles the LangGraph state graph using `build_chrono_graph()`.
+   - Renders and displays the Mermaid flow diagram using:
+     ```python
+     from IPython.display import Image, display
+
+     display(Image(graph.get_graph().draw_mermaid_png()))
+     ```
 
 ---
 
