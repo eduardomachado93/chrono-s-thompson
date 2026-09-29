@@ -15,7 +15,7 @@ Chrono S. Thompson is an autonomous agentic pipeline designed to bridge the temp
 5. **Performs RAG context indexing** by scraping full Wikipedia content, cleaning wikitext noise, attaching source metadata (`title`, `url`, `page_name`), and creating an in-memory `VectorStoreRetriever`.
 6. **Searches vector context** querying the vector store retriever with the curated query string to fetch relevant text chunks (`retrieved_docs`).
 7. **Validates & re-ranks context** deduplicating, scoring context chunks by keyword density against the selected event and hook, and assigning stable source IDs (`[S1]`, `[S2]`) with metadata (`sources`).
-8. **Drafts high-engagement prose** with stable inline citations (`[S1]`, `[S2]`) and a mandatory `### Fontes` section formatted with collapsible `<details><summary>` blocks showing canonical URLs and cited excerpts in the visceral voice of Gonzo journalism.
+8. **Drafts high-engagement prose** with stable inline citations (`[S1]`, `[S2]`) and a mandatory `### Sources` section formatted with collapsible `<details><summary>` blocks showing canonical URLs and cited excerpts in the visceral voice of Gonzo journalism.
 9. **Fact-checks and audits citations** in a dedicated verifier node (`VerificationReport`), checking deterministic citation IDs, missing sources, and supported vs. unsupported/contradicted claims, with a max 2-attempt correction loop.
 10. **Persists and archives** verified daily dispatches automatically as Markdown files in `storage/output/`.
 
@@ -145,7 +145,7 @@ class RankedSelection(BaseModel):
 * **Mechanism:** Ingests the reranked context and source metadata, assigns stable source IDs (`[S1]`, `[S2]`), and drafts the dispatch adhering to Gonzo style directives and inline citations.
 * **Persona Directives:**
   * **First-Person Immersion (Narrative Device):** Report as an eyewitness present at the historical moment. First-person voice is a literary device, NOT eyewitness historical truth. No fabricated historical events or fake dates are allowed.
-  * **Citation Requirements:** Inline source tags `[S1]`, `[S2]` and a mandatory `### Fontes` section formatted with collapsible HTML `<details><summary>` blocks displaying source title, canonical URL, and cited excerpt snippet.
+  * **Citation Requirements:** Inline source tags `[S1]`, `[S2]` and a mandatory `### Sources` section formatted with collapsible HTML `<details><summary>` blocks displaying source title, canonical URL, and cited excerpt snippet.
 * **Input State:** `curated_story`, `reranked_docs`, `sources`, `target_date`, `photo_filename`, `verification_feedback` (optional)
 * **Output State Mutation:** `{"draft_article": str, "sources": Dict[str, SourceMetadata]}`
 
@@ -153,7 +153,7 @@ class RankedSelection(BaseModel):
 
 ### 9. Fact Verifier Node (`src/chrono_s_thompson/graph/nodes/verifier.py`)
 * **Role:** Citation Verification & Factual Integrity Review.
-* **Mechanism:** Performs a deterministic regex citation check for unattached IDs (e.g. `[S99]`) and `### Fontes` section presence, followed by an LLM structured claim review (`VerificationReport`).
+* **Mechanism:** Performs a deterministic regex citation check for unattached IDs (e.g. `[S99]`) and `### Sources` section presence, followed by an LLM structured claim review (`VerificationReport`).
 * **Correction Loop:** If claims are unsupported/contradicted or citations are missing, populates `verification_feedback` and routes back to `write_article` (up to 2 revision attempts).
 * **Verification Limitation:** Automated LLM fact-checking is a heuristic analysis layer and does not guarantee absolute historical truth.
 * **Input State:** `draft_article`, `sources`, `revision_attempts`

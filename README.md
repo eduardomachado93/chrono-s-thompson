@@ -15,7 +15,7 @@
 5. **Indexes deep context into RAG** scraping Wikipedia content, stripping wikitext clutter, and preserving Wikipedia source metadata (`title`, `url`, `page_name`) across text chunks in an in-memory retriever.
 6. **Searches vector store context** querying the vector database for relevant historical context chunks.
 7. **Validates & re-ranks context** removing duplicate passages, scoring keyword relevance against the event and hook, and assigning stable source IDs (`[S1]`, `[S2]`).
-8. **Drafts high-engagement Gonzo prose** attaching stable source IDs (`[S1]`, `[S2]`), inline citations, and a mandatory `### Fontes` section with collapsible `<details><summary>` blocks displaying canonical URLs and cited excerpts.
+8. **Drafts high-engagement Gonzo prose** attaching stable source IDs (`[S1]`, `[S2]`), inline citations, and a mandatory `### Sources` section with collapsible `<details><summary>` blocks displaying canonical URLs and cited excerpts.
 9. **Verifies and fact-checks dispatches** in a dedicated verifier node checking citation IDs deterministically and auditing claims via LLM structured outputs (`VerificationReport`), with an automated revision loop.
 10. **Publishes verified dispatches** persisting approved Markdown dispatches to `storage/output/`.
 11. **Translates dispatches on-demand** using an offline Hugging Face Transformers pipeline (`Helsinki-NLP/opus-mt-tc-big-en-pt`).
@@ -57,7 +57,7 @@ graph TD
 5. **RAG Indexer Node (`index_selected_event`)**: Fetches Wikipedia text, strips wikitext clutter, attaches source metadata (`title`, `url`, `page_name`) to `Document` chunks, and builds an in-memory RAG retriever vector store.
 6. **Context Searcher Node (`search_context`)**: Queries the vector store retriever with the curated query string to fetch relevant historical passages.
 7. **Context Reranker Node (`rerank_context`)**: Validates, deduplicates, ranks retrieved text chunks by relevance, and creates stable source mappings (`S1`, `S2`, ...).
-8. **Gonzo Journalist Node (`write_article`)**: Synthesizes the reranked context, assigns stable source IDs (`[S1]`, `[S2]`), and drafts the article with inline citations and a collapsible `### Fontes` section.
+8. **Gonzo Journalist Node (`write_article`)**: Synthesizes the reranked context, assigns stable source IDs (`[S1]`, `[S2]`), and drafts the article with inline citations and a collapsible `### Sources` section.
 9. **Fact Verifier Node (`verify_article`)**: Audits citation IDs deterministically, verifies factual claims against source evidence (`VerificationReport`), and manages the revision feedback loop. *Note: Automated LLM verification is a heuristic check and does not guarantee absolute historical truth.*
 10. **Publisher Node (`publish_article`)**: Persists verified dispatches to `storage/output/{filename}.md`.
 

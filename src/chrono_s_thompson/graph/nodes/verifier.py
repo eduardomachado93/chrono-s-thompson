@@ -49,7 +49,7 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
     logger.info("[Node: verify_article] Performing citation check and factual verification...")
 
     # 1. Deterministic Citation & Structure Check
-    parts = re.split(r'###\s*(?:Fontes|Sources)', draft_article, maxsplit=1, flags=re.IGNORECASE)
+    parts = re.split(r'###\s*(?:Sources|Sources)', draft_article, maxsplit=1, flags=re.IGNORECASE)
     body_text = parts[0]
     has_sources_section = len(parts) > 1
 
@@ -67,7 +67,7 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
 
     feedback_parts: List[str] = []
     if not has_sources_section:
-        feedback_parts.append("Missing required '### Fontes' section at the end of the article.")
+        feedback_parts.append("Missing required '### Sources' section at the end of the article.")
     if not has_inline_citations:
         feedback_parts.append("Missing inline citations in the body text (e.g. [S1], [S2]).")
     if missing_ids:
@@ -168,10 +168,10 @@ async def verify_article_node(state: ChronoState) -> Dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"[Node: verify_article] LLM verification failed: {exc}")
-        # Sanitize exception message to avoid exposing sensitive keys
+        # Sanitize exception message before logging to avoid exposing sensitive keys in logs
         exc_str = str(exc)
         sanitized_exc = re.sub(r'sk-[A-Za-z0-9T3BlbkFJ\-_]{20,}', '[REDACTED]', exc_str)
+        logger.error(f"[Node: verify_article] Fact verification service failed: {sanitized_exc}")
         
         fallback_report = VerificationReport(
             is_valid=False,

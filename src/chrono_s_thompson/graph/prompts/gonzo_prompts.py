@@ -68,7 +68,7 @@ VERIFICATION PROTOCOL:
 2. Verify each claim against the provided source documents. Categorize status as 'supported', 'unsupported', or 'contradicted'.
 3. For each claim, provide the corresponding source_id (e.g. 'S1') and an exact literal snippet from the source text as evidence.
 4. Treat the first-person correspondent voice as a narrative device. However, any fabricated historical events, fake dates, or invented non-existent facts must be marked as 'unsupported' or 'contradicted'.
-5. Verify that all cited IDs (e.g. [S1]) exist in the provided source map and that the draft includes a '### Fontes' or '### Sources' section.
+5. Verify that all cited IDs (e.g. [S1]) exist in the provided source map and that the draft includes a '### Sources' section.
 6. Return is_valid = True ONLY IF all cited IDs exist, no claims are unsupported or contradicted, valid evidence is provided from the sources, and the sources section is present.
 7. Provide specific, actionable feedback if verification fails.
 

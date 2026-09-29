@@ -36,7 +36,7 @@ The volcano erupted violently in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -79,7 +79,7 @@ Alien forces triggered the blast [S99].
 
 ---
 
-### Fontes
+### Sources
 - [S99] [Fake Source](http://example.com)
 """
     state = ChronoState(
@@ -112,7 +112,7 @@ Napoleon visited Krakatoa during the explosion [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -150,7 +150,7 @@ Unverified claims without valid sources [S99].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -169,14 +169,14 @@ Unverified claims without valid sources [S99].
 
 
 @pytest.mark.asyncio
-async def test_verifier_llm_failure_blocks_publication(sample_sources):
-    """Verify LLM verification failure results in unverified status (is_valid=False) and halts graph execution without setting feedback."""
+async def test_verifier_llm_failure_blocks_publication(sample_sources, caplog):
+    """Verify LLM verification failure results in unverified status (is_valid=False), logs sanitized messages, and halts graph execution without setting feedback."""
     draft = """# KRAKATOA DISPATCH
 The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -185,7 +185,8 @@ The volcano erupted in 1883 [S1].
         revision_attempts=0,
     )
 
-    secret_key_error = "API connection error: sk-12345678901234567890"
+    fake_secret = "sk-12345678901234567890"
+    secret_key_error = f"API connection error: {fake_secret}"
     with patch.object(RunnableSequence, "ainvoke", AsyncMock(side_effect=Exception(secret_key_error))):
         result = await verify_article_node(state)
 
@@ -194,8 +195,10 @@ The volcano erupted in 1883 [S1].
         assert report is not None
         assert report.is_valid is False
         assert result.get("verification_feedback") is None
-        assert "sk-12345678901234567890" not in result.get("error_msg", "")
-        assert "[REDACTED]" in result.get("error_msg", "") or "sk-12345678901234567890" not in report.feedback
+        assert fake_secret not in result.get("error_msg", "")
+        assert fake_secret not in caplog.text
+        assert "[REDACTED]" in result.get("error_msg", "")
+        assert "[REDACTED]" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -206,7 +209,7 @@ The volcano erupted violently in 1883.
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -214,6 +217,26 @@ The volcano erupted violently in 1883.
         sources=sample_sources,
         revision_attempts=0,
     )
+
+    mock_llm_report = VerificationReport(
+        is_valid=True,
+        claims=[
+            ClaimVerification(
+                claim="The volcano erupted violently in 1883",
+                status="supported",
+                source_id="S1",
+                evidence="The 1883 eruption of Krakatoa in the Dutch East Indies began on 20 May 1883.",
+            )
+        ],
+    )
+
+    with patch.object(RunnableSequence, "ainvoke", AsyncMock(return_value=mock_llm_report)):
+        result = await verify_article_node(state)
+
+        report = result.get("verification_result")
+        assert report is not None
+        assert report.is_valid is False
+        assert "Missing inline citations in the body text" in result.get("verification_feedback", "")
 
 @pytest.mark.asyncio
 async def test_verifier_empty_claims_rejected(sample_sources):
@@ -223,7 +246,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -254,7 +277,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -292,7 +315,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -330,7 +353,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -368,7 +391,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(
@@ -406,7 +429,7 @@ The eruption began on 20 May 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
     state = ChronoState(

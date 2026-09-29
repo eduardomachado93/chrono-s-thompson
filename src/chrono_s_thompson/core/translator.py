@@ -71,7 +71,7 @@ def translate_markdown_text(text: str, model_name: str = TRANSLATION_MODEL) -> s
             continue
 
         try:
-            # Preserve headers (# Title -> # Tradução)
+            # Preserve headers (# Title -> # Translation)
             header_prefix = ""
             text_to_translate = stripped
             if stripped.startswith("#"):

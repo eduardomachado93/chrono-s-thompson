@@ -50,7 +50,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
 
@@ -136,7 +136,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
 
@@ -294,7 +294,7 @@ The volcano erupted in 1883 [S1].
 
 ---
 
-### Fontes
+### Sources
 - [S1] [1883 eruption of Krakatoa](https://en.wikipedia.org/wiki/1883_eruption_of_Krakatoa)
 """
 

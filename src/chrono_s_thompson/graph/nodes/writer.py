@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 writer_prompt = ChatPromptTemplate.from_messages([
     ("system", GONZO_WRITER_SYSTEM_PROMPT),
-    ("user", """LOCAL/DATA TEMPORAL: {target_date} of {year}
+    ("user", """TEMPORAL LOCATION/DATE: {target_date} of {year}
 EVENT: {title}
 GONZO EDITORIAL HOOK: {hook}
 
@@ -27,11 +27,11 @@ Write the full article in your visceral style, weaving the historical reportage 
 import re
 
 def format_sources_section(article_content: str, sources_map: Dict[str, SourceMetadata]) -> str:
-    """Ensures the '### Fontes' section displays the primary page URL at the top and collapsible text snippets for each cited ID."""
+    """Ensures the '### Sources' section displays the primary page URL at the top and collapsible text snippets for each cited ID."""
     if not sources_map:
         return article_content
 
-    parts = re.split(r'###\s*(Fontes|Sources)', article_content, flags=re.IGNORECASE)
+    parts = re.split(r'###\s*(Sources|Sources)', article_content, flags=re.IGNORECASE)
     body = parts[0].strip()
 
     cited_ids = sorted(list(set(re.findall(r'\[(S\d+)\]', body))), key=lambda x: int(x[1:]))
@@ -42,7 +42,7 @@ def format_sources_section(article_content: str, sources_map: Dict[str, SourceMe
     primary_title = first_source.title
     primary_url = first_source.url
 
-    fontes_lines = [
+    sources_lines = [
         "### Sources",
         f"**Source Page**: [{primary_title}]({primary_url})\n"
     ]
@@ -52,16 +52,16 @@ def format_sources_section(article_content: str, sources_map: Dict[str, SourceMe
             s_meta = sources_map[sid]
             snippet = s_meta.content.strip()
             quoted = "\n> ".join(snippet.split("\n"))
-            fontes_lines.append(
+            sources_lines.append(
                 f"<details>\n<summary><strong>[{sid}] Cited Excerpt</strong></summary>\n\n> {quoted}\n\n</details>\n"
             )
 
-    sources_block = "\n".join(fontes_lines)
+    sources_block = "\n".join(sources_lines)
 
     footer_match = re.search(r'(\*— Chrono S\. Thompson.*)', article_content)
     footer = f"\n\n{footer_match.group(1)}" if footer_match else ""
 
-    body = re.sub(r'---\s*###\s*(Fontes|Sources)[\s\S]*$', '', body, flags=re.IGNORECASE).strip()
+    body = re.sub(r'---\s*###\s*(Sources|Sources)[\s\S]*$', '', body, flags=re.IGNORECASE).strip()
     body = re.sub(r'\*— Chrono S\. Thompson.*$', '', body, flags=re.IGNORECASE).strip()
 
     return f"{body}\n\n---\n\n{sources_block}\n\n---\n{footer}".strip()
