@@ -1,8 +1,15 @@
 # <img src="avatar.svg" alt="Chrono S. Thompson Logo" width="50"/> Chrono S. Thompson: The Gonzo Historical Correspondent
 
 > **Portfolio Project** — Highlighting modern AI engineering, stateful multi-agent orchestration with **LangGraph**, Model Context Protocol (**FastMCP**), contextual **RAG**, image synthesis, local **Hugging Face** neural translation, and ultra-fast Python environment management with **`uv`**.
-
 ---
+<div align="center">
+  <a href="https://github.com/eduardomachado93/chrono-s-thompson/graphs/commit-activity"><img src="https://img.shields.io/github/last-commit/eduardomachado93/chrono-s-thompson"></a>
+  <a href="https://github.com/eduardomachado93/chrono-s-thompson"><img src="https://img.shields.io/badge/status-In%20Progress-yellow"></a>   
+</div>
+
+<div align="center">
+   <img src="article.gif" width="750px">
+</div>
 
 ## 📌 About The Project
 
@@ -21,11 +28,9 @@
 11. **Translates dispatches on-demand** using an offline Hugging Face Transformers pipeline (`Helsinki-NLP/opus-mt-tc-big-en-pt`).
 12. **Interactive UI**: Persists, archives, and displays dispatches through a sleek **Streamlit** control panel.
 
----
-
-## ⚡ Powered by `uv`
-
-This repository strictly uses [**`uv`**](https://github.com/astral-sh/uv), the extremely fast Python package installer and resolver written in Rust. All dependency management, virtual environments, scripts, and build tasks are driven by `uv`.
+<div align="center">
+   <img src="generating-article.gif" width="750px">
+</div>
 
 ---
 
